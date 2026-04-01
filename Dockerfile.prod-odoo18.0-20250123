@@ -1,0 +1,109 @@
+# BUILD & RUN COMMANDS:
+# ---------------------
+# ATTENTION: The build commands should be launched being in .prodcontainer directory.
+#
+# To rebuild the image with removal of the previous build:
+#   docker rmi developmentrunsk/prod-odoo:18.0-20250123 --force && docker build --no-cache -t developmentrunsk/prod-odoo:18.0-20250123 -f Dockerfile.prod-odoo18.0-20250123 .
+#
+# To redirect all build output to build.log file:
+#   docker rmi developmentrunsk/prod-odoo:18.0-20250123 --force && > build.log && docker build --no-cache -t developmentrunsk/prod-odoo:18.0-20250123 -f Dockerfile.prod-odoo18.0-20250123 . > build.log 2>&1
+#
+# To run the image in interactive mode:
+#   docker run -it developmentrunsk/prod-odoo:18.0-20250123 /bin/bash
+#
+# PUBLISH ON DOCKERHUB:
+# ---------------------
+# To push the image to https://hub.docker.com/r/developmentrunsk/prod-odoo:
+#   docker login
+#   docker push developmentrunsk/prod-odoo:18.0-20250123
+#   docker logout
+# 
+# IMAGES, CONTAINERS & VOLUMES INFO COMMANDS:
+# -------------------------------------------
+# To list all images (without intermediate ones which does not spend dick space):
+#   docker image ls
+# 
+# To list all images (even with intermediate ones):
+#   docker image ls --all
+# 
+# To list all containers (even with temporary ones which are preserved even after 
+# they are stopped, see https://stackoverflow.com/a/56537550/1245149):
+#   docker container ls --all --size
+# 
+# To list all volumes:
+#   docker volume ls
+# 
+# To find size of all volumes inspect some of volumes at first to find a path to all volumes directories
+# and then use `du` (disk usage) to find out spent disk spage (e.g. for docker volumes on linux):
+#   docker volume inspect <volume_name>
+#   sudo du -sh /var/lib/docker/volumes/
+# Or for given <volume_name>:
+#   sudo du -sh /var/lib/docker/volumes/<volume_name>
+# 
+# IMAGES, CONTAINERS & VOLUMES CLEANUP COMMANDS:
+# ----------------------------------------------
+# To clean up disk space remove at first temporary containers (otherwise their existence 
+# will block removal of dangling images) and then remove dangling images:
+#   docker container prune
+#   docker image prune
+# 
+# To remove all unused images (not just the dangling ones):
+#   docker image prune --all
+# 
+# To remove an image by its id:
+#   docker image rm <image_id>
+#
+# ATTENTION: Be careful with volumes removal (and DO NOT USE at all `docker volume prune` which
+# removes all ACTUALLY unused volumes) because very probably you will lost your data (mostly some databases).
+# Images and containers are easily reproducible (building from Dockerfile or cloning from hub.docker.com),
+# but this is not the case of volumes.
+#
+# To remove an volume by its name:
+#   docker volume rm <volume_name>
+#
+# NOTE: If there is some missing <command> in this docker image then try `busybox <command>`.
+FROM odoo:18.0-20250123
+
+USER root
+
+# Let the scripts running in docker container using this image to know that 
+# they are running in docker container on localhost (it means in development mode).
+# Possible values of this variable are onLocalhost, inProduction.
+ENV IN_DOCKER=inProduction
+
+# Disable the buffering of the standard output (stdout) and standard error (stderr) streams in Python
+ENV PYTHONUNBUFFERED=1
+# Prevent Python from writing .pyc files in the __pycache__ directories
+ENV PYTHONDONTWRITEBYTECODE=1
+
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    # Install following additional linux packages:
+    && apt-get install -y --no-install-recommends \
+        # `git`
+        git \
+        # `python3 venv` to be used here below
+        python3.12-venv \
+        # and you can add any other here below:
+        # ... \
+    # Clean up the package manager's local repository of retrieved package files
+    # and remove the package lists that were downloaded earlier 
+    # to reduce the size of the final Docker image
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+USER odoo
+
+RUN \
+    # Create and activate a virtual environment
+    python3 -m venv /var/lib/odoo/.venv \
+    && . /var/lib/odoo/.venv/bin/activate \
+    # Install following Python packages:
+    && pip install --upgrade pip \
+    && pip install \
+        # upgrade utils for migrations
+        # see https://www.odoo.com/documentation/18.0/developer/reference/upgrades/upgrade_utils.html
+        git+https://github.com/odoo/upgrade-util@master
+        # and you can add any other here below:
+        # ... \
+
+# Add the virtual environment's bin directory to PATH
+ENV PATH="/var/lib/odoo/.venv/bin:$PATH"

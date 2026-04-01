@@ -1,0 +1,126 @@
+# BUILD & RUN COMMANDS:
+# ---------------------
+# ATTENTION: The build commands should be launched being in this project root directory.
+#
+# To rebuild the image with removal of the previous build:
+#   docker rmi developmentrunsk/fajnubuntu:noble-20251013 --force && docker build --pull --no-cache -t developmentrunsk/fajnubuntu:noble-20251013 -f Dockerfile.fajnubuntu-noble-20251013 .
+#
+# To redirect all build output to build.log file:
+#   docker rmi developmentrunsk/fajnubuntu:noble-20251013 --force && > build.log && docker build --pull --no-cache -t developmentrunsk/fajnubuntu:noble-20251013 -f Dockerfile.fajnubuntu-noble-20251013 . > build.log 2>&1
+#
+# To run the image in interactive mode:
+#   docker run -it developmentrunsk/fajnubuntu:noble-20251013 /bin/bash
+#
+# PUBLISH ON DOCKERHUB:
+# ---------------------
+# To push the image to https://hub.docker.com/r/developmentrunsk/fajnubuntu:
+#   docker login
+#   docker push developmentrunsk/fajnubuntu:noble-20251013
+#   docker logout
+#
+# IMAGES, CONTAINERS & VOLUMES INFO COMMANDS:
+# -------------------------------------------
+# To list all images (without intermediate ones which does not spend dick space):
+#   docker image ls
+#
+# To list all images (even with intermediate ones):
+#   docker image ls --all
+#
+# To list all containers (even with temporary ones which are preserved even after
+# they are stopped, see https://stackoverflow.com/a/56537550/1245149):
+#   docker container ls --all --size
+#
+# To list all volumes:
+#   docker volume ls
+#
+# To find size of all volumes inspect some of volumes at first to find a path to all volumes directories
+# and then use `du` (disk usage) to find out spent disk spage (e.g. for docker volumes on linux):
+#   docker volume inspect <volume_name>
+#   sudo du -sh /var/lib/docker/volumes/
+# Or for given <volume_name>:
+#   sudo du -sh /var/lib/docker/volumes/<volume_name>
+#
+# IMAGES, CONTAINERS, NETWORKS & VOLUMES CLEANUP COMMANDS:
+# --------------------------------------------------------
+# To clean up disk space remove at first temporary containers (otherwise their existence
+# will block removal of dangling images) and then remove dangling images:
+#   docker container prune
+#   docker image prune
+#
+# To remove all unused images (not just the dangling ones):
+#   docker image prune --all
+#
+# To remove an image by its id:
+#   docker image rm <image_id>
+#
+# ATTENTION: Be careful with volumes removal (and DO NOT USE at all `docker volume prune` which
+# removes all ACTUALLY unused volumes) because very probably you will lost your data (mostly some databases).
+# Images and containers are easily reproducible (building from Dockerfile or cloning from hub.docker.com),
+# but this is not the case of volumes.
+#
+# To remove an volume by its name:
+#   docker volume rm <volume_name>
+#
+# ATTENTION: If you get an error "all predefined address pools have been fully subnetted" on devcontainer start,
+# then remove all unused networks:
+#   docker network prune
+#
+# NOTE: If there is some missing <command> in this docker image then try `busybox <command>`.
+
+FROM ubuntu:noble-20251013
+
+# Let the scripts running in docker container using this image to know that
+# they are running in docker container on localhost (it means in development mode).
+# Possible values of this variable are onLocalhost, inProduction.
+ENV IN_DOCKER=onLocalhost
+
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    # Install following additional linux packages:
+    && apt-get install -y --no-install-recommends \
+        # `sudo` to allow super user operations
+        sudo \
+        # `bash-completion` to allow `make` command auto-completion
+        bash-completion \
+        # `hg` (Mercurial)
+        mercurial \
+        # `git` to make image usable also for other than fajnwork projects
+        git \
+        # `openssh-client` to enable ssh command
+        openssh-client \
+        # `ca-certificates`, `curl` to allow `curl` command
+        ca-certificates curl \
+        # `less` to view files in less
+        less \
+        # linux tools, e.g. `busybox vi` (vi), `busybox less` (less), `busybox grep` (grep), etc.
+        busybox \
+        # `pip` for Python package management (python3 is pre-installed in Ubuntu Noble)
+        python3-pip \
+    # Make `python` an alias for `python3`
+    && ln -s /usr/bin/python3 /usr/local/bin/python \
+    # Clean up the package manager's local repository of retrieved package files
+    # and remove the package lists that were downloaded earlier
+    # to reduce the size of the final Docker image
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# Allow ubuntu user to execute sudo without a password
+RUN echo "ubuntu ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/ubuntu
+
+# Use the created user to run the container
+USER ubuntu
+
+# Create a directory for the workspaces
+RUN mkdir -p /home/ubuntu/workspaces
+
+# Create the `preserved` directory where are stored all user
+# files which should be preserved in named volume
+RUN mkdir -p /home/ubuntu/preserved
+# Set the bash history file to preserved location
+ENV HISTFILE=/home/ubuntu/preserved/.bash_history
+
+# Create directory for VS Code Server data (e.g. augment code threads)
+# to preserve them even after the container is rebuild
+# NOTE: It is created here explicitly to ensure it has `ubuntu` as owner.
+# Otherwise it would be created with `root` as owner because it is mapped to named volume in docker-compose.yml.
+RUN mkdir -p /home/ubuntu/.vscode-server
+
+WORKDIR /home/ubuntu/workspaces

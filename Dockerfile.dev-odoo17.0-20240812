@@ -1,0 +1,173 @@
+# BUILD & RUN COMMANDS:
+# ---------------------
+# ATTENTION: The build commands should be launched being in this project root directory.
+#
+# To rebuild the image with removal of the previous build:
+#   docker rmi developmentrunsk/dev-odoo:17.0-20240812 --force && docker build --pull --no-cache -t developmentrunsk/dev-odoo:17.0-20240812 -f Dockerfile.dev-odoo17.0-20240812 .
+#
+# To redirect all build output to build.log file:
+#   docker rmi developmentrunsk/dev-odoo:17.0-20240812 --force && > build.log && docker build --pull --no-cache -t developmentrunsk/dev-odoo:17.0-20240812 -f Dockerfile.dev-odoo17.0-20240812 . > build.log 2>&1
+#
+# To run the image in interactive mode:
+#   docker run -it developmentrunsk/dev-odoo:17.0-20240812 /bin/bash
+#
+# PUBLISH ON DOCKERHUB:
+# ---------------------
+# To push the image to https://hub.docker.com/r/developmentrunsk/dev-odoo:
+#   docker login
+#   docker push developmentrunsk/dev-odoo:17.0-20240812
+#   docker logout
+# 
+# IMAGES, CONTAINERS & VOLUMES INFO COMMANDS:
+# -------------------------------------------
+# To list all images (without intermediate ones which does not spend dick space):
+#   docker image ls
+# 
+# To list all images (even with intermediate ones):
+#   docker image ls --all
+# 
+# To list all containers (even with temporary ones which are preserved even after 
+# they are stopped, see https://stackoverflow.com/a/56537550/1245149):
+#   docker container ls --all --size
+# 
+# To list all volumes:
+#   docker volume ls
+# 
+# To find size of all volumes inspect some of volumes at first to find a path to all volumes directories
+# and then use `du` (disk usage) to find out spent disk spage (e.g. for docker volumes on linux):
+#   docker volume inspect <volume_name>
+#   sudo du -sh /var/lib/docker/volumes/
+# Or for given <volume_name>:
+#   sudo du -sh /var/lib/docker/volumes/<volume_name>
+# 
+# IMAGES, CONTAINERS & VOLUMES CLEANUP COMMANDS:
+# ----------------------------------------------
+# To clean up disk space remove at first temporary containers (otherwise their existence 
+# will block removal of dangling images) and then remove dangling images:
+#   docker container prune
+#   docker image prune
+# 
+# To remove all unused images (not just the dangling ones):
+#   docker image prune --all
+# 
+# To remove an image by its id:
+#   docker image rm <image_id>
+#
+# ATTENTION: Be careful with volumes removal (and DO NOT USE at all `docker volume prune` which
+# removes all ACTUALLY unused volumes) because very probably you will lost your data (mostly some databases).
+# Images and containers are easily reproducible (building from Dockerfile or cloning from hub.docker.com),
+# but this is not the case of volumes.
+#
+# To remove an volume by its name:
+#   docker volume rm <volume_name>
+#
+# NOTE: If there is some missing <command> in this docker image then try `busybox <command>`.
+FROM odoo:17.0-20240812
+
+USER root
+
+# Let the scripts running in docker container using this image to know that 
+# they are running in docker container on localhost (it means in development mode).
+# Possible values of this variable are onLocalhost, inProduction.
+ENV IN_DOCKER=onLocalhost
+
+# Disable the buffering of the standard output (stdout) and standard error (stderr) streams in Python
+ENV PYTHONUNBUFFERED=1
+# Prevent Python from writing .pyc files in the __pycache__ directories
+ENV PYTHONDONTWRITEBYTECODE=1
+
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    # Install following additional linux packages:
+    && apt-get install -y --no-install-recommends \
+        # `bash-completion` to allow `make` command auto-completion
+        bash-completion \
+        # `git`
+        git \
+        # `openssh-client` to enable ssh command
+        openssh-client \
+        # linux tools, e.g. `busybox vi` (vi), `busybox less` (less), `busybox grep` (grep), etc.
+        busybox \
+        # `make` command to allow use of `Makefile`
+        make \
+        # `nano` text editor (to set it as a git default editor here below)
+        nano \
+        # `sudo` command
+        sudo \
+        # and you can add any other here below:
+        # ... \
+    # Clean up the package manager's local repository of retrieved package files
+    # and remove the package lists that were downloaded earlier 
+    # to reduce the size of the final Docker image
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# Set following in system Git config (/etc/gitconfig)
+RUN \
+    # Set nano as default Git editor
+    git config --system core.editor nano \
+    # Set VS Code as diff and merge tool
+    && git config --system diff.tool vscode \
+    && git config --system difftool.vscode.cmd 'code --wait --diff $LOCAL $REMOTE' \
+    && git config --system merge.tool vscode \
+    && git config --system mergetool.vscode.cmd 'code --wait $MERGED' \
+    # Set what to do on pull (merge, not rebase)
+    && git config --system pull.rebase false \
+    # Set shortcuts for Mercurial users
+    && git config --system alias.glog "log --all --graph" \
+    && git config --system alias.st "status" \
+    && git config --system alias.rollback "reset --soft HEAD^"
+
+RUN \
+    # Create `developer` user and group with specific UID/GID (1000:1000) to simulate a user on 
+    # hosting system. This user is used as devcontainer user (see `devcontainer.json` > `"remoreUser"`) 
+    # to allow devcontainer create necessary config files in home directory of `developer` user.
+    groupadd -g 1000 developer \
+    && useradd -u 1000 -g developer -m -s /bin/bash developer \
+    # Add developer to odoo group
+    && usermod -aG odoo developer \
+    # Allow developer user to execute sudo without a password
+    && echo "developer ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/developer 
+
+# Add /home/developer/.local/bin to PATH
+ENV PATH="/home/developer/.local/bin:${PATH}"
+
+# Copy the entrypoint script
+COPY dev-odoo-entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Create log directory for Odoo and set proper permissions
+RUN mkdir -p /var/log/odoo \
+    && chown -R odoo:odoo /var/log/odoo \
+    && chmod 755 /var/log/odoo
+
+# Set default user when running the container
+USER developer
+
+# Create the `preserved` directory where are stored all user
+# files which should be preserved in named volume
+RUN mkdir -p /home/developer/preserved
+# Set the bash history file to preserved location
+ENV HISTFILE=/home/developer/preserved/.bash_history
+
+# Create directory for VS Code Server data (e.g. augment code threads)
+# to preserve them even after the container is rebuild
+# NOTE: It is created here explicitly to ensure it has `developer` as owner.
+# Otherwise it would be created with `root` as owner because it is mapped to named volume in docker-compose.yml.
+RUN mkdir -p /home/developer/.vscode-server
+
+RUN \
+    # Install following Python packages:
+    pip3 install \
+        # `debugpy` to allow odoo debugging in VS Code
+        debugpy \
+        # upgrade utils for migrations
+        # see https://www.odoo.com/documentation/17.0/developer/reference/upgrades/upgrade_utils.html
+        git+https://github.com/odoo/upgrade-util@master
+        # and you can add any other here below:
+        # ... \
+
+# Set the entrypoint to your script
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+# Override the default command to prevent Odoo from starting automatically.
+# Use the `tail -f /dev/null` command to keep the container running.
+CMD ["tail", "-f", "/dev/null"]

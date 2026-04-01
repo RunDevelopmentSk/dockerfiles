@@ -1,0 +1,236 @@
+# BUILD & RUN COMMANDS:
+# ---------------------
+# ATTENTION: The build commands should be launched being in this project root directory.
+#
+# To rebuild the image with removal of the previous build:
+#   docker rmi developmentrunsk/fajnlamp:5.6 --force && docker build --pull --no-cache -t developmentrunsk/fajnlamp:5.6 -f Dockerfile.fajnlamp56 .
+#
+# To redirect all build output to build.log file:
+#   docker rmi developmentrunsk/fajnlamp:5.6 --force && > build.log && docker build --pull --no-cache -t developmentrunsk/fajnlamp:5.6 -f Dockerfile.fajnlamp56 . > build.log 2>&1
+#
+# To run the image in interactive mode:
+#   docker run -it developmentrunsk/fajnlamp:5.6 /bin/bash
+#
+# PUBLISH ON DOCKERHUB:
+# ---------------------
+# To push the image to https://hub.docker.com/r/developmentrunsk/fajnlamp:
+#   docker login
+#   docker push developmentrunsk/fajnlamp:5.6
+#   docker logout
+# 
+# IMAGES, CONTAINERS & VOLUMES INFO COMMANDS:
+# -------------------------------------------
+# To list all images (without intermediate ones which does not spend dick space):
+#   docker image ls
+# 
+# To list all images (even with intermediate ones):
+#   docker image ls --all
+# 
+# To list all containers (even with temporary ones which are preserved even after 
+# they are stopped, see https://stackoverflow.com/a/56537550/1245149):
+#   docker container ls --all --size
+# 
+# To list all volumes:
+#   docker volume ls
+# 
+# To find size of all volumes inspect some of volumes at first to find a path to all volumes directories
+# and then use `du` (disk usage) to find out spent disk spage (e.g. for docker volumes on linux):
+#   docker volume inspect <volume_name>
+#   sudo du -sh /var/lib/docker/volumes/
+# Or for given <volume_name>:
+#   sudo du -sh /var/lib/docker/volumes/<volume_name>
+# 
+# IMAGES, CONTAINERS, NETWORKS & VOLUMES CLEANUP COMMANDS:
+# --------------------------------------------------------
+# To clean up disk space remove at first temporary containers (otherwise their existence 
+# will block removal of dangling images) and then remove dangling images:
+#   docker container prune
+#   docker image prune
+# 
+# To remove all unused images (not just the dangling ones):
+#   docker image prune --all
+# 
+# To remove an image by its id:
+#   docker image rm <image_id>
+#
+# ATTENTION: Be careful with volumes removal (and DO NOT USE at all `docker volume prune` which
+# removes all ACTUALLY unused volumes) because very probably you will lost your data (mostly some databases).
+# Images and containers are easily reproducible (building from Dockerfile or cloning from hub.docker.com),
+# but this is not the case of volumes.
+#
+# To remove an volume by its name:
+#   docker volume rm <volume_name>
+# 
+# ATTENTION: If you get an error "all predefined address pools have been fully subnetted" on devcontainer start,
+# then remove all unused networks:
+#   docker network prune
+#
+# NOTE: If there is some missing <command> in this docker image then try `busybox <command>`.
+FROM php:5.6-apache-stretch
+
+# Let the scripts running in docker container using this image to know that 
+# they are running in docker container on localhost (it means in development mode).
+# Possible values of this variable are onLocalhost, inProduction.
+ENV IN_DOCKER=onLocalhost
+# Make the IN_DOCKER variable available in the Apache environment so in .htaccess like %{ENV:IN_DOCKER}
+RUN echo "export IN_DOCKER=$IN_DOCKER" >> /etc/apache2/envvars
+
+# point apt sources to an archived version of the Debian Stretch repositories
+RUN sed -i 's/deb.debian.org/archive.debian.org/g' /etc/apt/sources.list \
+    && sed -i '/debian-security/d' /etc/apt/sources.list \
+    && sed -i '/stretch-updates/d' /etc/apt/sources.list \
+    && apt-get update -o Acquire::Check-Valid-Until=false
+
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    # Install following additional linux packages:
+    && apt-get install -y --no-install-recommends \
+        # `sudo` to allow super user operations
+        sudo \
+        # `bash-completion` to allow `make` command auto-completion
+        bash-completion \
+        # `hg` (Mercurial)
+        mercurial \
+        # `git` to make image usable also for other than fajnwork projects
+        git \
+        # `openssh-client` to enable ssh command
+        openssh-client \
+        # linux tools, e.g. `busybox vi` (vi), `busybox less` (less), `busybox grep` (grep), etc.
+        busybox \
+        # `mysql` to allow access and import DB:
+        # - `mysql -u root -proot -h db --default-character-set=utf8 -D project`
+        # - `SOURCE dumpfile.sql`
+        mariadb-client \
+        # libraries needed for GD.
+        libfreetype6-dev \
+        libjpeg62-turbo-dev \
+        libpng-dev \
+        # library needed for imagick (installed here below using pecl).
+        libmagickwand-dev --no-install-recommends \
+        # library needed for ssh2 (installed here below using pecl).
+        libssh2-1-dev \
+        # library needed for xsl (installed here below).
+        libxslt-dev \
+        # library needed for zip (installed here below).
+        libzip-dev \
+        # library needed for mcrypt (replacing openssl).
+        libmcrypt-dev \
+    # Clean up the package manager's local repository of retrieved package files
+    # and remove the package lists that were downloaded earlier 
+    # to reduce the size of the final Docker image
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# Enable Apache modules
+RUN a2enmod mime \
+    && a2enmod rewrite \
+    && a2enmod deflate \
+    && a2enmod proxy proxy_http \
+    && a2enmod headers \
+    && a2enmod expires
+
+# Enable .htaccess overrides
+RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
+
+# Install necessary PHP extensions (use `php -m` to list all enabled)
+RUN pecl install imagick && docker-php-ext-enable imagick \
+    && pecl install ssh2-0.13 && docker-php-ext-enable ssh2 \
+    && pecl install xdebug-2.5.5 && docker-php-ext-enable xdebug \
+    && docker-php-ext-install bcmath bz2 calendar exif gettext intl mysqli opcache \
+    && docker-php-ext-install pcntl pdo_mysql shmop soap sockets sysvmsg sysvsem sysvshm wddx xsl zip \
+    && docker-php-ext-install mcrypt
+
+# Configure and install GD extension with FreeType support
+RUN docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+    && docker-php-ext-install gd
+
+# Create php.ini using the development template
+RUN cp $PHP_INI_DIR/php.ini-development $PHP_INI_DIR/php.ini
+
+# Update PHP settings:
+# - max_execution_time = 600
+# - max_input_time = 60
+# - memory_limit = 256M
+# - post_max_size = 80M
+# - upload_max_filesize = 80M
+# - max_file_uploads = 20
+RUN sed -i 's/^max_execution_time = .*/max_execution_time = 600/' $PHP_INI_DIR/php.ini \
+    && sed -i 's/^max_input_time = .*/max_input_time = 60/' $PHP_INI_DIR/php.ini \
+    && sed -i 's/^memory_limit = .*/memory_limit = 256M/' $PHP_INI_DIR/php.ini \
+    && sed -i 's/^post_max_size = .*/post_max_size = 80M/' $PHP_INI_DIR/php.ini \
+    && sed -i 's/^upload_max_filesize = .*/upload_max_filesize = 80M/' $PHP_INI_DIR/php.ini \
+    && sed -i 's/^max_file_uploads = .*/max_file_uploads = 20/' $PHP_INI_DIR/php.ini
+
+# Add extensions to php.ini for Apache
+RUN echo "" >> $PHP_INI_DIR/php.ini \
+    && echo "; custom directives:" >> $PHP_INI_DIR/php.ini \
+    # Following is covered here above by `docker-php-ext-enable`.
+    # Either do it manually here or by `docker-php-ext-enable`, but do not use both.
+    #&& echo "extension=imagick.so" >> $PHP_INI_DIR/php.ini \
+    #&& echo "extension=ssh2.so" >> $PHP_INI_DIR/php.ini \
+    #&& echo "" >> $PHP_INI_DIR/php.ini \
+    #&& echo "zend_extension=/usr/local/lib/php/extensions/no-debug-non-zts-20180731/xdebug.so" >> $PHP_INI_DIR/php.ini \
+    && echo "xdebug.remote_enable = 1" >> $PHP_INI_DIR/php.ini \
+    && echo "xdebug.remote_autostart = 1" >> $PHP_INI_DIR/php.ini \
+    && echo "xdebug.remote_port = 9000" >> $PHP_INI_DIR/php.ini
+
+# Install Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# Install nvm, Node.js v10 (for `gulp scss` and `gitbook serve`) and v17:
+ENV NVM_DIR /usr/local/nvm
+RUN mkdir -p $NVM_DIR
+# - Install NVM
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+# - Make NVM available in the current shell
+SHELL ["/bin/bash", "--login", "-c"]
+# - Install Node.js and npm
+RUN . $NVM_DIR/nvm.sh \
+    && nvm install 10 \
+    && nvm install 17 \
+    && nvm use 17 \
+    && nvm alias default 17
+
+# Install GitBook for Node.js 10
+RUN /bin/bash -l -c '. "$NVM_DIR/nvm.sh" \
+    && nvm use 10 \
+    && npm install -global gitbook-cli'
+
+# Install Gulp for Node.js 10
+RUN /bin/bash -l -c '. "$NVM_DIR/nvm.sh" \
+    && nvm use 10 \
+    && npm install --global gulp-cli'
+
+# Install Gulp for Node.js 17
+RUN /bin/bash -l -c '. "$NVM_DIR/nvm.sh" \
+    && nvm use 17 \
+    && npm install --global gulp-cli'
+
+# Create a group and user with specific UID/GID (1000:1000) to simulate a user on 
+# hosting system.
+RUN groupadd -g 1000 developer \
+    && useradd -u 1000 -g developer -m -s /bin/bash developer \
+    # Allow developer user to execute sudo without a password
+    && echo "developer ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/developer 
+# Change ownership of the web root and any other required directories
+# This is to ensure the new user has access to these directories
+RUN chown -R developer:developer /var/www
+# Ensure NVM is initialized in the developer's bash sessions with the correct NVM_DIR
+RUN echo 'export NVM_DIR="/usr/local/nvm"' >> /home/developer/.bashrc \
+    && echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm' >> /home/developer/.bashrc \
+    && echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion' >> /home/developer/.bashrc
+# Use the created user to run the container
+USER developer
+
+# Create the `preserved` directory where are stored all user
+# files which should be preserved in named volume
+RUN mkdir -p /home/developer/preserved
+# Set the bash history file to preserved location
+ENV HISTFILE=/home/developer/preserved/.bash_history
+
+# Create directory for VS Code Server data (e.g. augment code threads)
+# to preserve them even after the container is rebuild
+# NOTE: It is created here explicitly to ensure it has `developer` as owner.
+# Otherwise it would be created with `root` as owner because it is mapped to named volume in docker-compose.yml.
+RUN mkdir -p /home/developer/.vscode-server
+
+# Create a directory for shared node_modules
+RUN mkdir /var/www/node_modules
