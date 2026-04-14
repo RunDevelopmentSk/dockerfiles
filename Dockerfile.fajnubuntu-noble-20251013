@@ -93,6 +93,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         less \
         # linux tools, e.g. `busybox vi` (vi), `busybox less` (less), `busybox grep` (grep), etc.
         busybox \
+        # `ffmpeg` to process audio and video files
+        ffmpeg \
         # `gcc` and `python3-dev` to compile Python C extensions (e.g. webrtcvad used by resemblyzer)
         gcc \
         python3-dev \
