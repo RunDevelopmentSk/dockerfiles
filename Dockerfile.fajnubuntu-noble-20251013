@@ -113,6 +113,9 @@ RUN echo "ubuntu ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/ubuntu
 # Use the created user to run the container
 USER ubuntu
 
+# Add user-local bin to PATH (for pip-installed scripts)
+ENV PATH="/home/ubuntu/.local/bin:$PATH"
+
 # Create a directory for the workspaces
 RUN mkdir -p /home/ubuntu/workspaces
 
