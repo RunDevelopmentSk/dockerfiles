@@ -81,9 +81,9 @@ RUN sed -i 's/deb.debian.org/archive.debian.org/g' /etc/apt/sources.list \
     && sed -i '/stretch-updates/d' /etc/apt/sources.list \
     && apt-get update -o Acquire::Check-Valid-Until=false
 
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+RUN apt-get update -o Acquire::Check-Valid-Until=false && export DEBIAN_FRONTEND=noninteractive \
     # Install following additional linux packages:
-    && apt-get install -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends --allow-unauthenticated \
         # `sudo` to allow super user operations
         sudo \
         # `bash-completion` to allow `make` command auto-completion
@@ -226,11 +226,11 @@ RUN mkdir -p /home/developer/preserved
 # Set the bash history file to preserved location
 ENV HISTFILE=/home/developer/preserved/.bash_history
 
-# Create directory for VS Code Server data (e.g. augment code threads)
+# Create directory for VS Code global storage data (e.g. augment code threads)
 # to preserve them even after the container is rebuild
 # NOTE: It is created here explicitly to ensure it has `developer` as owner.
 # Otherwise it would be created with `root` as owner because it is mapped to named volume in docker-compose.yml.
-RUN mkdir -p /home/developer/.vscode-server
+RUN mkdir -p /home/developer/.vscode-server/data/User/globalStorage
 
 # Create a directory for shared node_modules
 RUN mkdir /var/www/node_modules

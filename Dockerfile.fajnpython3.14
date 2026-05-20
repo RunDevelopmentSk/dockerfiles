@@ -65,8 +65,8 @@ FROM mcr.microsoft.com/devcontainers/python:2-3.14-trixie
 # Use the vscode user to run the container
 USER vscode
 
-# Create directory for VS Code Server data (e.g. augment code threads)
+# Create directory for VS Code global storage data (e.g. augment code threads)
 # to preserve them even after the container is rebuild
 # NOTE: It is created here explicitly to ensure it has `vscode` as owner.
 # Otherwise it would be created with `root` as owner because it is mapped to named volume in docker-compose.yml.
-RUN mkdir -p /home/vscode/.vscode-server
+RUN mkdir -p /home/vscode/.vscode-server/data/User/globalStorage

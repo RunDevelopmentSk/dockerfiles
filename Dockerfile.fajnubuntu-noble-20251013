@@ -98,6 +98,12 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         # `gcc` and `python3-dev` to compile Python C extensions (e.g. webrtcvad used by resemblyzer)
         gcc \
         python3-dev \
+        # OCR and PDF conversion
+        tesseract-ocr \
+        tesseract-ocr-slk \
+        tesseract-ocr-ces \
+        tesseract-ocr-eng \
+        poppler-utils \
         # `pip` for Python package management (python3 is pre-installed in Ubuntu Noble)
         python3-pip \
     # Make `python` an alias for `python3`
@@ -125,10 +131,10 @@ RUN mkdir -p /home/ubuntu/preserved
 # Set the bash history file to preserved location
 ENV HISTFILE=/home/ubuntu/preserved/.bash_history
 
-# Create directory for VS Code Server data (e.g. augment code threads)
+# Create directory for VS Code global storage data (e.g. augment code threads)
 # to preserve them even after the container is rebuild
 # NOTE: It is created here explicitly to ensure it has `ubuntu` as owner.
 # Otherwise it would be created with `root` as owner because it is mapped to named volume in docker-compose.yml.
-RUN mkdir -p /home/ubuntu/.vscode-server
+RUN mkdir -p /home/ubuntu/.vscode-server/data/User/globalStorage
 
 WORKDIR /home/ubuntu/workspaces
