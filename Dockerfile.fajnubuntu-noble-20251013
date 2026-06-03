@@ -69,6 +69,9 @@
 
 FROM ubuntu:noble-20251013
 
+# Use to check the actual version of image inside of container
+ENV IMAGE_VERSION=fajnubuntu-noble-20251013-2606031319
+
 # Let the scripts running in docker container using this image to know that
 # they are running in docker container on localhost (it means in development mode).
 # Possible values of this variable are onLocalhost, inProduction.
@@ -93,6 +96,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         less \
         # linux tools, e.g. `busybox vi` (vi), `busybox less` (less), `busybox grep` (grep), etc.
         busybox \
+        # `bubblewrap` is used by `codex` CLI
+        bubblewrap \
         # `ffmpeg` to process audio and video files
         ffmpeg \
         # `gcc` and `python3-dev` to compile Python C extensions (e.g. webrtcvad used by resemblyzer)
@@ -136,5 +141,15 @@ ENV HISTFILE=/home/ubuntu/preserved/.bash_history
 # NOTE: It is created here explicitly to ensure it has `ubuntu` as owner.
 # Otherwise it would be created with `root` as owner because it is mapped to named volume in docker-compose.yml.
 RUN mkdir -p /home/ubuntu/.vscode-server/data/User/globalStorage
+
+# Install nvm and Node 24 for ubuntu user (required by Auggie CLI and other Node-based tools)
+ENV NVM_DIR="/home/ubuntu/.nvm"
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash \
+    && . "$NVM_DIR/nvm.sh" \
+    && nvm install 24 \
+    && nvm alias default 24 \
+    # Create stable symlink to default bin dir for ENV PATH below
+    && ln -sf "$(dirname "$(nvm which default)")" "$NVM_DIR/default-bin"
+ENV PATH="$NVM_DIR/default-bin:$PATH"
 
 WORKDIR /home/ubuntu/workspaces

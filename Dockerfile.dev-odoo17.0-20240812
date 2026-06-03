@@ -66,6 +66,9 @@ FROM odoo:17.0-20240812
 
 USER root
 
+# Use to check the actual version of image inside of container
+ENV IMAGE_VERSION=dev-odoo17.0-20240812-202606031313
+
 # Let the scripts running in docker container using this image to know that 
 # they are running in docker container on localhost (it means in development mode).
 # Possible values of this variable are onLocalhost, inProduction.
@@ -91,6 +94,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         make \
         # `nano` text editor (to set it as a git default editor here below)
         nano \
+        # `bubblewrap` is used by `codex` CLI
+        bubblewrap \
         # `sudo` command
         sudo \
         # and you can add any other here below:
@@ -164,6 +169,16 @@ RUN \
         git+https://github.com/odoo/upgrade-util@master
         # and you can add any other here below:
         # ... \
+
+# Install nvm and Node 24 for developer user (required by Auggie CLI and other Node-based tools)
+ENV NVM_DIR="/home/developer/.nvm"
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash \
+    && . "$NVM_DIR/nvm.sh" \
+    && nvm install 24 \
+    && nvm alias default 24 \
+    # Create stable symlink to default bin dir for ENV PATH below
+    && ln -sf "$(dirname "$(nvm which default)")" "$NVM_DIR/default-bin"
+ENV PATH="$NVM_DIR/default-bin:$PATH"
 
 # Set the entrypoint to your script
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

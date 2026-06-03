@@ -66,6 +66,9 @@ FROM odoo:18.0-20250123
 
 USER root
 
+# Use to check the actual version of image inside of container
+ENV IMAGE_VERSION=prod-odoo18.0-20250123-202606031321
+
 # Let the scripts running in docker container using this image to know that 
 # they are running in docker container on localhost (it means in development mode).
 # Possible values of this variable are onLocalhost, inProduction.

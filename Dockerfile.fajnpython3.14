@@ -62,6 +62,25 @@
 #   docker volume rm <volume_name>
 FROM mcr.microsoft.com/devcontainers/python:2-3.14-trixie
 
+USER root
+
+# Use to check the actual version of image inside of container
+ENV IMAGE_VERSION=fajnpython3.14-2606031319
+
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    # Install following additional linux packages:
+    && apt-get install -y --no-install-recommends \
+        # `bubblewrap` is used by `codex` CLI
+        bubblewrap \
+        # `sudo` command
+        sudo \
+        # and you can add any other here below:
+        # ... \
+    # Clean up the package manager's local repository of retrieved package files
+    # and remove the package lists that were downloaded earlier 
+    # to reduce the size of the final Docker image
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
 # Use the vscode user to run the container
 USER vscode
 
@@ -70,3 +89,13 @@ USER vscode
 # NOTE: It is created here explicitly to ensure it has `vscode` as owner.
 # Otherwise it would be created with `root` as owner because it is mapped to named volume in docker-compose.yml.
 RUN mkdir -p /home/vscode/.vscode-server/data/User/globalStorage
+
+# Install nvm and Node 24 for vscode user (required by Auggie CLI and other Node-based tools)
+ENV NVM_DIR="/home/vscode/.nvm"
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash \
+    && . "$NVM_DIR/nvm.sh" \
+    && nvm install 24 \
+    && nvm alias default 24 \
+    # Create stable symlink to default bin dir for ENV PATH below
+    && ln -sf "$(dirname "$(nvm which default)")" "$NVM_DIR/default-bin"
+ENV PATH="$NVM_DIR/default-bin:$PATH"
