@@ -1,0 +1,131 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Dockerfile.*'
+      - 'dev-odoo-entrypoint.sh'
+      - '.github/workflows/docker-publish.yml'
+  workflow_dispatch:
+    inputs:
+      rebuild_all:
+        description: 'Rebuild all Dockerfiles (ignore change detection)'
+        type: boolean
+        default: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.build-matrix.outputs.matrix }}
+      has_changes: ${{ steps.build-matrix.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build dynamic matrix
+        id: build-matrix
+        env:
+          FORCE_ALL: ${{ github.event_name == 'workflow_dispatch' && inputs.rebuild_all == true }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          BASE="$EVENT_BEFORE"
+          if [[ -z "$BASE" || "$BASE" == "0000000000000000000000000000000000000000" ]]; then
+            BASE=$(git rev-parse "${HEAD_SHA}^" 2>/dev/null || echo "")
+          fi
+
+          if [[ "$FORCE_ALL" == "true" ]]; then
+            mapfile -t FILES < <(ls Dockerfile.* 2>/dev/null || true)
+          elif [[ -n "$BASE" ]]; then
+            mapfile -t FILES < <(git diff --name-only --diff-filter=AM "$BASE" "$HEAD_SHA" -- 'Dockerfile.*')
+          else
+            mapfile -t FILES < <(ls Dockerfile.* 2>/dev/null || true)
+          fi
+
+          INCLUDE='[]'
+          for f in "${FILES[@]}"; do
+            [[ -z "$f" || ! -f "$f" ]] && continue
+
+            # Skip *.test variants (not published to Docker Hub).
+            if [[ "$f" == *.test ]]; then
+              echo "::notice file=$f::Skipping $f (.test variant excluded from CI builds)"
+              continue
+            fi
+
+            # For modified (not newly added) files check if changes are comments-only.
+            if [[ "$FORCE_ALL" != "true" && -n "$BASE" ]] && \
+               git cat-file -e "$BASE:$f" 2>/dev/null; then
+              DIFF=$(git diff --no-color "$BASE" "$HEAD_SHA" -- "$f" \
+                     | grep -E '^[+-]' \
+                     | grep -vE '^(\+\+\+|---) ' || true)
+              NONCOMMENT=$(printf '%s\n' "$DIFF" \
+                           | sed -E 's/^[+-]//' \
+                           | sed -E 's/^[ \t]+//' \
+                           | grep -vE '^(#|$)' || true)
+              if [[ -z "$NONCOMMENT" ]]; then
+                echo "::notice file=$f::Skipping $f (only comment/whitespace changes)"
+                continue
+              fi
+            fi
+
+            REST="${f#Dockerfile.}"
+            if [[ "$REST" != *_* ]]; then
+              echo "::error file=$f::Filename does not match Dockerfile.<image>_<tag> convention"
+              exit 1
+            fi
+            IMAGE="${REST%%_*}"
+            TAG="${REST#*_}"
+            ITEM=$(jq -nc --arg f "$f" --arg i "$IMAGE" --arg t "$TAG" \
+                   '{dockerfile:$f, image:$i, tag:$t}')
+            INCLUDE=$(jq -c --argjson item "$ITEM" '. + [$item]' <<< "$INCLUDE")
+          done
+
+          COUNT=$(jq 'length' <<< "$INCLUDE")
+          {
+            echo "matrix={\"include\":$INCLUDE}"
+            echo "has_changes=$([[ $COUNT -gt 0 ]] && echo true || echo false)"
+          } >> "$GITHUB_OUTPUT"
+          echo "Will build $COUNT image(s):"
+          jq . <<< "$INCLUDE"
+
+  build:
+    needs: detect
+    if: needs.detect.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute IMAGE_VERSION
+        id: ver
+        run: |
+          TS=$(date -u +%Y%m%d%H%M%S)
+          echo "image_version=${{ matrix.image }}_${{ matrix.tag }}-${TS}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push ${{ matrix.image }}:${{ matrix.tag }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          pull: true
+          build-args: |
+            IMAGE_VERSION=${{ steps.ver.outputs.image_version }}
+          tags: |
+            developmentrunsk/${{ matrix.image }}:${{ matrix.tag }}
+          cache-from: type=gha,scope=${{ matrix.dockerfile }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.dockerfile }}
