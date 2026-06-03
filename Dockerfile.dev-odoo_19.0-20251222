@@ -75,6 +75,7 @@ ENV IMAGE_VERSION=${IMAGE_VERSION}
 # Possible values of this variable are onLocalhost, inProduction.
 ENV IN_DOCKER=onLocalhost
 
+# test comment
 ENV MY_TEST_ENV=test
 
 # Disable the buffering of the standard output (stdout) and standard error (stderr) streams in Python
