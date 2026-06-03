@@ -3,10 +3,10 @@
 # ATTENTION: The build commands should be launched being in this project root directory.
 #
 # To rebuild the image with removal of the previous build:
-#   docker rmi developmentrunsk/dev-odoo:19.0-20251222 --force && docker build --pull --no-cache -t developmentrunsk/dev-odoo:19.0-20251222 -f Dockerfile.dev-odoo19.0-20251222 .
+#   docker rmi developmentrunsk/dev-odoo:19.0-20251222 --force && docker build --pull --no-cache -t developmentrunsk/dev-odoo:19.0-20251222 -f Dockerfile.dev-odoo_19.0-20251222 .
 #
 # To redirect all build output to build.log file:
-#   docker rmi developmentrunsk/dev-odoo:19.0-20251222 --force && > build.log && docker build --pull --no-cache -t developmentrunsk/dev-odoo:19.0-20251222 -f Dockerfile.dev-odoo19.0-20251222 . > build.log 2>&1
+#   docker rmi developmentrunsk/dev-odoo:19.0-20251222 --force && > build.log && docker build --pull --no-cache -t developmentrunsk/dev-odoo:19.0-20251222 -f Dockerfile.dev-odoo_19.0-20251222 . > build.log 2>&1
 #
 # To run the image in interactive mode:
 #   docker run -it developmentrunsk/dev-odoo:19.0-20251222 /bin/bash
@@ -67,7 +67,7 @@ FROM odoo:19.0-20251222
 USER root
 
 # Use to check the actual version of image inside of container
-ENV IMAGE_VERSION=dev-odoo19.0-20251222-202606031315
+ENV IMAGE_VERSION=dev-odoo_19.0-20251222-202606031315
 
 # Let the scripts running in docker container using this image to know that 
 # they are running in docker container on localhost (it means in development mode).

@@ -3,19 +3,19 @@
 # ATTENTION: The build commands should be launched being in this project root directory.
 #
 # To rebuild the image with removal of the previous build:
-#   docker rmi developmentrunsk/fajnlamp:8.0 --force && docker build --pull --no-cache -t developmentrunsk/fajnlamp:8.0 -f Dockerfile.fajnlamp80 .
+#   docker rmi developmentrunsk/fajnlamp:8.3 --force && docker build --pull --no-cache -t developmentrunsk/fajnlamp:8.3 -f Dockerfile.fajnlamp_8.3 .
 #
 # To redirect all build output to build.log file:
-#   docker rmi developmentrunsk/fajnlamp:8.0 --force && > build.log && docker build --pull --no-cache -t developmentrunsk/fajnlamp:8.0 -f Dockerfile.fajnlamp80 . > build.log 2>&1
+#   docker rmi developmentrunsk/fajnlamp:8.3 --force && > build.log && docker build --pull --no-cache -t developmentrunsk/fajnlamp:8.3 -f Dockerfile.fajnlamp_8.3 . > build.log 2>&1
 #
 # To run the image in interactive mode:
-#   docker run -it developmentrunsk/fajnlamp:8.0 /bin/bash
+#   docker run -it developmentrunsk/fajnlamp:8.3 /bin/bash
 #
 # PUBLISH ON DOCKERHUB:
 # ---------------------
 # To push the image to https://hub.docker.com/r/developmentrunsk/fajnlamp:
 #   docker login
-#   docker push developmentrunsk/fajnlamp:8.0
+#   docker push developmentrunsk/fajnlamp:8.3
 #   docker logout
 # 
 # IMAGES, CONTAINERS & VOLUMES INFO COMMANDS:
@@ -66,10 +66,13 @@
 #   docker network prune
 #
 # NOTE: If there is some missing <command> in this docker image then try `busybox <command>`.
-FROM php:8.0-apache
+
+# php:8.3-apache-bullseye instead of php:8.0-apache because of wkhtmltopdf with patched Qt here below
+FROM php:8.3-apache-bullseye
+# FROM php:8.2-apache
 
 # Use to check the actual version of image inside of container
-ENV IMAGE_VERSION=fajnlamp80-2606031318
+ENV IMAGE_VERSION=fajnlamp_8.3-202606031318
 
 # Let the scripts running in docker container using this image to know that 
 # they are running in docker container on localhost (it means in development mode).
@@ -115,6 +118,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         libpng-dev \
         # library needed for imagick (installed here below using pecl).
         libmagickwand-dev \
+        libmagickcore-dev \
+        imagemagick \
         # library needed for ssh2 (installed here below using pecl).
         libssh2-1-dev \
         # library needed for xsl (installed here below).
@@ -145,9 +150,22 @@ RUN a2enmod mime \
 # Enable .htaccess overrides
 RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 
+# Clone and build Imagick from the latest master
+RUN git clone https://github.com/Imagick/imagick.git /usr/src/imagick \
+    && cd /usr/src/imagick \
+    && phpize \
+    && ./configure \
+    && make -j"$(nproc)" \
+    && make install \
+    && docker-php-ext-enable imagick \
+    && rm -rf /usr/src/imagick
+
 # Install necessary PHP extensions (use `php -m` to list all enabled)
-RUN pecl install imagick && docker-php-ext-enable imagick \
-    && pecl install ssh2-1.4 && docker-php-ext-enable ssh2 \
+RUN \
+    # The insllation of imagick is done above by compiling it from the latest master
+    # because the pecl installation does not work for PHP 8.3. (there is bug in imagick)
+    #pecl install imagick && docker-php-ext-enable imagick \
+    pecl install ssh2-1.4 && docker-php-ext-enable ssh2 \
     && pecl install xdebug && docker-php-ext-enable xdebug \
     && docker-php-ext-install bcmath bz2 calendar exif gettext intl mysqli opcache \
     && docker-php-ext-install pcntl pdo_mysql pdo_pgsql pgsql shmop soap sockets sysvmsg sysvsem sysvshm xsl zip

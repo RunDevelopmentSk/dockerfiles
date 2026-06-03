@@ -3,10 +3,10 @@
 # ATTENTION: The build commands should be launched being in this project root directory.
 #
 # To rebuild the image with removal of the previous build:
-#   docker rmi developmentrunsk/fajnpython:3.14 --force && docker build --pull --no-cache -t developmentrunsk/fajnpython:3.14 -f Dockerfile.fajnpython3.14 .
+#   docker rmi developmentrunsk/fajnpython:3.14 --force && docker build --pull --no-cache -t developmentrunsk/fajnpython:3.14 -f Dockerfile.fajnpython_3.14 .
 #
 # To redirect all build output to build.log file:
-#   docker rmi developmentrunsk/fajnpython:3.14 --force && > build.log && docker build --pull --no-cache -t developmentrunsk/fajnpython:3.14 -f Dockerfile.fajnpython3.14 . > build.log 2>&1
+#   docker rmi developmentrunsk/fajnpython:3.14 --force && > build.log && docker build --pull --no-cache -t developmentrunsk/fajnpython:3.14 -f Dockerfile.fajnpython_3.14 . > build.log 2>&1
 #
 # To run the image in interactive mode:
 #   docker run -it developmentrunsk/fajnpython:3.14 /bin/bash
@@ -65,9 +65,10 @@ FROM mcr.microsoft.com/devcontainers/python:2-3.14-trixie
 USER root
 
 # Use to check the actual version of image inside of container
-ENV IMAGE_VERSION=fajnpython3.14-2606031319
+ENV IMAGE_VERSION=fajnpython_3.14-202606031319
 
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+RUN rm -f /etc/apt/sources.list.d/yarn.list \
+    && apt-get update && export DEBIAN_FRONTEND=noninteractive \
     # Install following additional linux packages:
     && apt-get install -y --no-install-recommends \
         # `bubblewrap` is used by `codex` CLI

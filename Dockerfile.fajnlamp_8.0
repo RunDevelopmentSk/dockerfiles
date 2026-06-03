@@ -3,19 +3,19 @@
 # ATTENTION: The build commands should be launched being in this project root directory.
 #
 # To rebuild the image with removal of the previous build:
-#   docker rmi developmentrunsk/fajnlamp:5.6 --force && docker build --pull --no-cache -t developmentrunsk/fajnlamp:5.6 -f Dockerfile.fajnlamp56 .
+#   docker rmi developmentrunsk/fajnlamp:8.0 --force && docker build --pull --no-cache -t developmentrunsk/fajnlamp:8.0 -f Dockerfile.fajnlamp_8.0 .
 #
 # To redirect all build output to build.log file:
-#   docker rmi developmentrunsk/fajnlamp:5.6 --force && > build.log && docker build --pull --no-cache -t developmentrunsk/fajnlamp:5.6 -f Dockerfile.fajnlamp56 . > build.log 2>&1
+#   docker rmi developmentrunsk/fajnlamp:8.0 --force && > build.log && docker build --pull --no-cache -t developmentrunsk/fajnlamp:8.0 -f Dockerfile.fajnlamp_8.0 . > build.log 2>&1
 #
 # To run the image in interactive mode:
-#   docker run -it developmentrunsk/fajnlamp:5.6 /bin/bash
+#   docker run -it developmentrunsk/fajnlamp:8.0 /bin/bash
 #
 # PUBLISH ON DOCKERHUB:
 # ---------------------
 # To push the image to https://hub.docker.com/r/developmentrunsk/fajnlamp:
 #   docker login
-#   docker push developmentrunsk/fajnlamp:5.6
+#   docker push developmentrunsk/fajnlamp:8.0
 #   docker logout
 # 
 # IMAGES, CONTAINERS & VOLUMES INFO COMMANDS:
@@ -66,10 +66,10 @@
 #   docker network prune
 #
 # NOTE: If there is some missing <command> in this docker image then try `busybox <command>`.
-FROM php:5.6-apache-stretch
+FROM php:8.0-apache
 
 # Use to check the actual version of image inside of container
-ENV IMAGE_VERSION=fajnlamp56-2606031316
+ENV IMAGE_VERSION=fajnlamp_8.0-202606031318
 
 # Let the scripts running in docker container using this image to know that 
 # they are running in docker container on localhost (it means in development mode).
@@ -78,15 +78,9 @@ ENV IN_DOCKER=onLocalhost
 # Make the IN_DOCKER variable available in the Apache environment so in .htaccess like %{ENV:IN_DOCKER}
 RUN echo "export IN_DOCKER=$IN_DOCKER" >> /etc/apache2/envvars
 
-# point apt sources to an archived version of the Debian Stretch repositories
-RUN sed -i 's/deb.debian.org/archive.debian.org/g' /etc/apt/sources.list \
-    && sed -i '/debian-security/d' /etc/apt/sources.list \
-    && sed -i '/stretch-updates/d' /etc/apt/sources.list \
-    && apt-get update -o Acquire::Check-Valid-Until=false
-
-RUN apt-get update -o Acquire::Check-Valid-Until=false && export DEBIAN_FRONTEND=noninteractive \
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     # Install following additional linux packages:
-    && apt-get install -y --no-install-recommends --allow-unauthenticated \
+    && apt-get install -y --no-install-recommends \
         # `sudo` to allow super user operations
         sudo \
         # `bash-completion` to allow `make` command auto-completion
@@ -105,24 +99,36 @@ RUN apt-get update -o Acquire::Check-Valid-Until=false && export DEBIAN_FRONTEND
         gawk \
         # `bubblewrap` is used by `codex` CLI
         bubblewrap \
-        # `mysql` to allow access and import DB:
+        # `mysql` to allow access and import MySQL DB:
         # - `mysql -u root -proot -h db --default-character-set=utf8 -D project`
         # - `SOURCE dumpfile.sql`
         mariadb-client \
+        # `psql` to allow access and import PosgreSQL DB:
+        # - `psql -u root project`
+        # - `\i dumpfile.sql`
+        postgresql-client \
+        # libraries needed for PostgreSQL PHP support.
+        libpq-dev \
         # libraries needed for GD.
         libfreetype6-dev \
         libjpeg62-turbo-dev \
         libpng-dev \
         # library needed for imagick (installed here below using pecl).
-        libmagickwand-dev --no-install-recommends \
+        libmagickwand-dev \
         # library needed for ssh2 (installed here below using pecl).
         libssh2-1-dev \
         # library needed for xsl (installed here below).
         libxslt-dev \
         # library needed for zip (installed here below).
         libzip-dev \
-        # library needed for mcrypt (replacing openssl).
-        libmcrypt-dev \
+    # Install wkhtmltopdf with patched Qt
+    && apt-get install -y xfonts-base xfonts-75dpi \
+    && curl -Lo /tmp/wkhtmltox.deb https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-2/wkhtmltox_0.12.6.1-2.bullseye_amd64.deb \
+    && dpkg -i /tmp/wkhtmltox.deb \
+    && apt-get -f install -y \
+    && rm -rf /tmp/wkhtmltox.deb \
+    && ln -s /usr/local/bin/wkhtmltopdf /usr/bin/wkhtmltopdf \
+    && ln -s /usr/local/bin/wkhtmltoimage /usr/bin/wkhtmltoimage \
     # Clean up the package manager's local repository of retrieved package files
     # and remove the package lists that were downloaded earlier 
     # to reduce the size of the final Docker image
@@ -141,14 +147,13 @@ RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/Allo
 
 # Install necessary PHP extensions (use `php -m` to list all enabled)
 RUN pecl install imagick && docker-php-ext-enable imagick \
-    && pecl install ssh2-0.13 && docker-php-ext-enable ssh2 \
-    && pecl install xdebug-2.5.5 && docker-php-ext-enable xdebug \
+    && pecl install ssh2-1.4 && docker-php-ext-enable ssh2 \
+    && pecl install xdebug && docker-php-ext-enable xdebug \
     && docker-php-ext-install bcmath bz2 calendar exif gettext intl mysqli opcache \
-    && docker-php-ext-install pcntl pdo_mysql shmop soap sockets sysvmsg sysvsem sysvshm wddx xsl zip \
-    && docker-php-ext-install mcrypt
+    && docker-php-ext-install pcntl pdo_mysql pdo_pgsql pgsql shmop soap sockets sysvmsg sysvsem sysvshm xsl zip
 
 # Configure and install GD extension with FreeType support
-RUN docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd
 
 # Create php.ini using the development template
@@ -171,15 +176,9 @@ RUN sed -i 's/^max_execution_time = .*/max_execution_time = 600/' $PHP_INI_DIR/p
 # Add extensions to php.ini for Apache
 RUN echo "" >> $PHP_INI_DIR/php.ini \
     && echo "; custom directives:" >> $PHP_INI_DIR/php.ini \
-    # Following is covered here above by `docker-php-ext-enable`.
-    # Either do it manually here or by `docker-php-ext-enable`, but do not use both.
-    #&& echo "extension=imagick.so" >> $PHP_INI_DIR/php.ini \
-    #&& echo "extension=ssh2.so" >> $PHP_INI_DIR/php.ini \
-    #&& echo "" >> $PHP_INI_DIR/php.ini \
-    #&& echo "zend_extension=/usr/local/lib/php/extensions/no-debug-non-zts-20180731/xdebug.so" >> $PHP_INI_DIR/php.ini \
-    && echo "xdebug.remote_enable = 1" >> $PHP_INI_DIR/php.ini \
-    && echo "xdebug.remote_autostart = 1" >> $PHP_INI_DIR/php.ini \
-    && echo "xdebug.remote_port = 9000" >> $PHP_INI_DIR/php.ini
+    && echo "xdebug.mode = debug" >> $PHP_INI_DIR/php.ini \
+    && echo "xdebug.start_with_request = yes" >> $PHP_INI_DIR/php.ini \
+    && echo "xdebug.client_port = 9003" >> $PHP_INI_DIR/php.ini
 
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer

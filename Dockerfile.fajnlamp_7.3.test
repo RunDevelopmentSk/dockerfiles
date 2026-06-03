@@ -3,19 +3,19 @@
 # ATTENTION: The build commands should be launched being in this project root directory.
 #
 # To rebuild the image with removal of the previous build:
-#   docker rmi developmentrunsk/fajnlamp:7.3test --force && docker build --pull --no-cache -t developmentrunsk/fajnlamp:7.3test -f Dockerfile.fajnlamp73test .
+#   docker rmi developmentrunsk/fajnlamp:7.3.test --force && docker build --pull --no-cache -t developmentrunsk/fajnlamp:7.3.test -f Dockerfile.fajnlamp_7.3.test .
 #
 # To redirect all build output to build.log file:
-#   docker rmi developmentrunsk/fajnlamp:7.3test --force && > build.log && docker build --pull --no-cache -t developmentrunsk/fajnlamp:7.3test -f Dockerfile.fajnlamp73test . > build.log 2>&1
+#   docker rmi developmentrunsk/fajnlamp:7.3.test --force && > build.log && docker build --pull --no-cache -t developmentrunsk/fajnlamp:7.3.test -f Dockerfile.fajnlamp_7.3.test . > build.log 2>&1
 #
 # To run the image in interactive mode:
-#   docker run -it developmentrunsk/fajnlamp:7.3test /bin/bash
+#   docker run -it developmentrunsk/fajnlamp:7.3.test /bin/bash
 #
 # PUBLISH ON DOCKERHUB:
 # ---------------------
 # To push the image to https://hub.docker.com/r/developmentrunsk/fajnlamp:
 #   docker login
-#   docker push developmentrunsk/fajnlamp:7.3test
+#   docker push developmentrunsk/fajnlamp:7.3.test
 #   docker logout
 # 
 # IMAGES, CONTAINERS & VOLUMES INFO COMMANDS:
@@ -69,7 +69,7 @@
 FROM php:7.3-apache
 
 # Use to check the actual version of image inside of container
-ENV IMAGE_VERSION=fajnlamp73test-202606031311
+ENV IMAGE_VERSION=fajnlamp_7.3.test-202606031311
 
 # Let the scripts running in docker container using this image to know that 
 # they are running in docker container on localhost (it means in development mode).

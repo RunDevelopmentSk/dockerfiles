@@ -3,19 +3,19 @@
 # ATTENTION: The build commands should be launched being in this project root directory.
 #
 # To rebuild the image with removal of the previous build:
-#   docker rmi developmentrunsk/dev-odoo:17.0-20240812 --force && docker build --pull --no-cache -t developmentrunsk/dev-odoo:17.0-20240812 -f Dockerfile.dev-odoo17.0-20240812 .
+#   docker rmi developmentrunsk/dev-odoo:18.0-20250123 --force && docker build --pull --no-cache -t developmentrunsk/dev-odoo:18.0-20250123 -f Dockerfile.dev-odoo_18.0-20250123 .
 #
 # To redirect all build output to build.log file:
-#   docker rmi developmentrunsk/dev-odoo:17.0-20240812 --force && > build.log && docker build --pull --no-cache -t developmentrunsk/dev-odoo:17.0-20240812 -f Dockerfile.dev-odoo17.0-20240812 . > build.log 2>&1
+#   docker rmi developmentrunsk/dev-odoo:18.0-20250123 --force && > build.log && docker build --pull --no-cache -t developmentrunsk/dev-odoo:18.0-20250123 -f Dockerfile.dev-odoo_18.0-20250123 . > build.log 2>&1
 #
 # To run the image in interactive mode:
-#   docker run -it developmentrunsk/dev-odoo:17.0-20240812 /bin/bash
+#   docker run -it developmentrunsk/dev-odoo:18.0-20250123 /bin/bash
 #
 # PUBLISH ON DOCKERHUB:
 # ---------------------
 # To push the image to https://hub.docker.com/r/developmentrunsk/dev-odoo:
 #   docker login
-#   docker push developmentrunsk/dev-odoo:17.0-20240812
+#   docker push developmentrunsk/dev-odoo:18.0-20250123
 #   docker logout
 # 
 # IMAGES, CONTAINERS & VOLUMES INFO COMMANDS:
@@ -62,12 +62,12 @@
 #   docker volume rm <volume_name>
 #
 # NOTE: If there is some missing <command> in this docker image then try `busybox <command>`.
-FROM odoo:17.0-20240812
+FROM odoo:18.0-20250123
 
 USER root
 
 # Use to check the actual version of image inside of container
-ENV IMAGE_VERSION=dev-odoo17.0-20240812-202606031313
+ENV IMAGE_VERSION=dev-odoo_18.0-20250123-202606031315
 
 # Let the scripts running in docker container using this image to know that 
 # they are running in docker container on localhost (it means in development mode).
@@ -90,6 +90,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         openssh-client \
         # linux tools, e.g. `busybox vi` (vi), `busybox less` (less), `busybox grep` (grep), etc.
         busybox \
+        # `python3 venv` to be used here below
+        python3.12-venv \
         # `make` command to allow use of `Makefile`
         make \
         # `nano` text editor (to set it as a git default editor here below)
@@ -122,10 +124,16 @@ RUN \
     && git config --system alias.rollback "reset --soft HEAD^"
 
 RUN \
+    # Remove the existing `ubuntu` user and group having UID/GID (1000:1000).
+    # NOTE: The reason to do this (instead of use `ubuntu` user directly) is to have 
+    # the same `developer` user (see here below) in all dev-odoo images (17, 18, ...)
+    # and so to be able to use the same docker-compose.yml and devcontainer.json for all images.
+    userdel -r ubuntu || true \
+    && groupdel ubuntu || true \
     # Create `developer` user and group with specific UID/GID (1000:1000) to simulate a user on 
     # hosting system. This user is used as devcontainer user (see `devcontainer.json` > `"remoreUser"`) 
     # to allow devcontainer create necessary config files in home directory of `developer` user.
-    groupadd -g 1000 developer \
+    && groupadd -g 1000 developer \
     && useradd -u 1000 -g developer -m -s /bin/bash developer \
     # Add developer to odoo group
     && usermod -aG odoo developer \
@@ -161,7 +169,12 @@ RUN mkdir -p /home/developer/.vscode-server/data/User/globalStorage
 
 RUN \
     # Install following Python packages:
-    pip3 install \
+    # NOTE: Since the Odoo is installed using system-wide python we must install system-wide 
+    # also debugpy and other python packages to make it work with system-wide python.
+    # As we are in Docker container (where we control the entire environment), we can tell pip 
+    # it’s okay to modify the system environment by passing the --break-system-packages option
+    # (and so bypass/ignore/break https://peps.python.org/pep-0668/)
+    pip3 install --break-system-packages \
         # `debugpy` to allow odoo debugging in VS Code
         debugpy \
         # upgrade utils for migrations
