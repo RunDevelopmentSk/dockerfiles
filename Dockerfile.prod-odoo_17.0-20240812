@@ -3,10 +3,10 @@
 # ATTENTION: The build commands should be launched being in this project root directory.
 #
 # To rebuild the image with removal of the previous build:
-#   docker rmi developmentrunsk/prod-odoo:17.0-20240812 --force && docker build --pull --no-cache -t developmentrunsk/prod-odoo:17.0-20240812 -f Dockerfile.prod-odoo_17.0-20240812 .
+#   docker rmi developmentrunsk/prod-odoo:17.0-20240812 --force && docker build --pull --no-cache --build-arg IMAGE_VERSION=prod-odoo_17.0-20240812-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/prod-odoo:17.0-20240812 -f Dockerfile.prod-odoo_17.0-20240812 .
 #
 # To redirect all build output to build.log file:
-#   docker rmi developmentrunsk/prod-odoo:17.0-20240812 --force && > build.log && docker build --pull --no-cache -t developmentrunsk/prod-odoo:17.0-20240812 -f Dockerfile.prod-odoo_17.0-20240812 . > build.log 2>&1
+#   docker rmi developmentrunsk/prod-odoo:17.0-20240812 --force && > build.log && docker build --pull --no-cache --build-arg IMAGE_VERSION=prod-odoo_17.0-20240812-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/prod-odoo:17.0-20240812 -f Dockerfile.prod-odoo_17.0-20240812 . > build.log 2>&1
 #
 # To run the image in interactive mode:
 #   docker run -it developmentrunsk/prod-odoo:17.0-20240812 /bin/bash
@@ -67,7 +67,8 @@ FROM odoo:17.0-20240812
 USER root
 
 # Use to check the actual version of image inside of container
-ENV IMAGE_VERSION=prod-odoo_17.0-20240812-202606031321
+ARG IMAGE_VERSION=prod-odoo_17.0-20240812-202606031321
+ENV IMAGE_VERSION=${IMAGE_VERSION}
 
 # Let the scripts running in docker container using this image to know that 
 # they are running in docker container on localhost (it means in development mode).
