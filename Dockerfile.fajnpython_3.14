@@ -3,10 +3,10 @@
 # ATTENTION: The build commands should be launched being in this project root directory.
 #
 # To rebuild the image with removal of the previous build:
-#   docker rmi developmentrunsk/fajnpython:3.14 --force && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnpython_3.14-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/fajnpython:3.14 -f Dockerfile.fajnpython_3.14 .
+#   docker rmi developmentrunsk/fajnpython:3.14 --force && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnpython:3.14-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/fajnpython:3.14 -f Dockerfile.fajnpython_3.14 .
 #
 # To redirect all build output to build.log file:
-#   docker rmi developmentrunsk/fajnpython:3.14 --force && > build.log && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnpython_3.14-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/fajnpython:3.14 -f Dockerfile.fajnpython_3.14 . > build.log 2>&1
+#   docker rmi developmentrunsk/fajnpython:3.14 --force && > build.log && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnpython:3.14-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/fajnpython:3.14 -f Dockerfile.fajnpython_3.14 . > build.log 2>&1
 #
 # To run the image in interactive mode:
 #   docker run -it developmentrunsk/fajnpython:3.14 /bin/bash
@@ -65,7 +65,7 @@ FROM mcr.microsoft.com/devcontainers/python:2-3.14-trixie
 USER root
 
 # Use to check the actual version of image inside of container
-ARG IMAGE_VERSION=fajnpython_3.14-202606031319
+ARG IMAGE_VERSION=fajnpython:3.14-202606031319
 ENV IMAGE_VERSION=${IMAGE_VERSION}
 
 RUN rm -f /etc/apt/sources.list.d/yarn.list \

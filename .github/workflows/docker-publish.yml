@@ -107,7 +107,7 @@ jobs:
         id: ver
         run: |
           TS=$(date -u +%Y%m%d%H%M%S)
-          echo "image_version=${{ matrix.image }}_${{ matrix.tag }}-${TS}" >> "$GITHUB_OUTPUT"
+          echo "image_version=${{ matrix.image }}:${{ matrix.tag }}-${TS}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v4
 
