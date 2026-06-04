@@ -3,10 +3,10 @@
 # ATTENTION: The build commands should be launched being in this project root directory.
 #
 # To rebuild the image with removal of the previous build:
-#   docker rmi developmentrunsk/fajnlamp:8.3 --force && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnlamp:8.3-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/fajnlamp:8.3 -f Dockerfile.fajnlamp_8.3 .
+#   docker rmi developmentrunsk/fajnlamp:8.3 --force && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnlamp:8.3-$(date -u +%Y%m%d%H%M%S) --build-arg TARGETARCH=amd64 -t developmentrunsk/fajnlamp:8.3 -f Dockerfile.fajnlamp_8.3 .
 #
 # To redirect all build output to build.log file:
-#   docker rmi developmentrunsk/fajnlamp:8.3 --force && > build.log && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnlamp:8.3-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/fajnlamp:8.3 -f Dockerfile.fajnlamp_8.3 . > build.log 2>&1
+#   docker rmi developmentrunsk/fajnlamp:8.3 --force && > build.log && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnlamp:8.3-$(date -u +%Y%m%d%H%M%S) --build-arg TARGETARCH=amd64 -t developmentrunsk/fajnlamp:8.3 -f Dockerfile.fajnlamp_8.3 . > build.log 2>&1
 #
 # To run the image in interactive mode:
 #   docker run -it developmentrunsk/fajnlamp:8.3 /bin/bash
@@ -17,39 +17,39 @@
 #   docker login
 #   docker push developmentrunsk/fajnlamp:8.3
 #   docker logout
-# 
+#
 # IMAGES, CONTAINERS & VOLUMES INFO COMMANDS:
 # -------------------------------------------
 # To list all images (without intermediate ones which does not spend dick space):
 #   docker image ls
-# 
+#
 # To list all images (even with intermediate ones):
 #   docker image ls --all
-# 
-# To list all containers (even with temporary ones which are preserved even after 
+#
+# To list all containers (even with temporary ones which are preserved even after
 # they are stopped, see https://stackoverflow.com/a/56537550/1245149):
 #   docker container ls --all --size
-# 
+#
 # To list all volumes:
 #   docker volume ls
-# 
+#
 # To find size of all volumes inspect some of volumes at first to find a path to all volumes directories
 # and then use `du` (disk usage) to find out spent disk spage (e.g. for docker volumes on linux):
 #   docker volume inspect <volume_name>
 #   sudo du -sh /var/lib/docker/volumes/
 # Or for given <volume_name>:
 #   sudo du -sh /var/lib/docker/volumes/<volume_name>
-# 
+#
 # IMAGES, CONTAINERS, NETWORKS & VOLUMES CLEANUP COMMANDS:
 # --------------------------------------------------------
-# To clean up disk space remove at first temporary containers (otherwise their existence 
+# To clean up disk space remove at first temporary containers (otherwise their existence
 # will block removal of dangling images) and then remove dangling images:
 #   docker container prune
 #   docker image prune
-# 
+#
 # To remove all unused images (not just the dangling ones):
 #   docker image prune --all
-# 
+#
 # To remove an image by its id:
 #   docker image rm <image_id>
 #
@@ -60,7 +60,7 @@
 #
 # To remove an volume by its name:
 #   docker volume rm <volume_name>
-# 
+#
 # ATTENTION: If you get an error "all predefined address pools have been fully subnetted" on devcontainer start,
 # then remove all unused networks:
 #   docker network prune
@@ -71,11 +71,14 @@
 FROM php:8.3-apache-bullseye
 # FROM php:8.2-apache
 
+# Target architecture provided automatically by `docker buildx` (amd64, arm64, ...)
+ARG TARGETARCH=amd64
+
 # Use to check the actual version of image inside of container
 ARG IMAGE_VERSION=fajnlamp:8.3-202606031318
 ENV IMAGE_VERSION=${IMAGE_VERSION}
 
-# Let the scripts running in docker container using this image to know that 
+# Let the scripts running in docker container using this image to know that
 # they are running in docker container on localhost (it means in development mode).
 # Possible values of this variable are onLocalhost, inProduction.
 ENV IN_DOCKER=onLocalhost
@@ -127,16 +130,16 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         libxslt-dev \
         # library needed for zip (installed here below).
         libzip-dev \
-    # Install wkhtmltopdf with patched Qt
+    # Install wkhtmltopdf with patched Qt (architecture-specific package)
     && apt-get install -y xfonts-base xfonts-75dpi \
-    && curl -Lo /tmp/wkhtmltox.deb https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-2/wkhtmltox_0.12.6.1-2.bullseye_amd64.deb \
+    && curl -Lo /tmp/wkhtmltox.deb https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-2/wkhtmltox_0.12.6.1-2.bullseye_${TARGETARCH}.deb \
     && dpkg -i /tmp/wkhtmltox.deb \
     && apt-get -f install -y \
     && rm -rf /tmp/wkhtmltox.deb \
     && ln -s /usr/local/bin/wkhtmltopdf /usr/bin/wkhtmltopdf \
     && ln -s /usr/local/bin/wkhtmltoimage /usr/bin/wkhtmltoimage \
     # Clean up the package manager's local repository of retrieved package files
-    # and remove the package lists that were downloaded earlier 
+    # and remove the package lists that were downloaded earlier
     # to reduce the size of the final Docker image
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
@@ -202,19 +205,19 @@ RUN echo "" >> $PHP_INI_DIR/php.ini \
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Create a group and user with specific UID/GID (1000:1000) to simulate a user on 
+# Create a group and user with specific UID/GID (1000:1000) to simulate a user on
 # hosting system.
 RUN groupadd -g 1000 developer \
     && useradd -u 1000 -g developer -m -s /bin/bash developer \
     # Allow developer user to execute sudo without a password
-    && echo "developer ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/developer 
+    && echo "developer ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/developer
 # Change ownership of the web root and any other required directories
 # This is to ensure the new user has access to these directories
 RUN chown -R developer:developer /var/www
 # Use the created user to run the container
 USER developer
 
-# Install nvm and Node.js 10 (Gitbook, Gulp), 17 (Gulp), 24 (Auggie) 
+# Install nvm and Node.js 10 (Gitbook, Gulp), 17 (Gulp), 24 (Auggie)
 ENV NVM_DIR="/home/developer/.nvm"
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash \
     && . "$NVM_DIR/nvm.sh" \
