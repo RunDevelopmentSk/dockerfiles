@@ -3,10 +3,10 @@
 # ATTENTION: The build commands should be launched being in this project root directory.
 #
 # To rebuild the image with removal of the previous build:
-#   docker rmi developmentrunsk/fajnlamp:5.6 --force && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnlamp:5.6-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/fajnlamp:5.6 -f Dockerfile.fajnlamp_5.6 .
+#   docker rmi developmentrunsk/fajnlamp:5.6 --force && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnlamp:5.6-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/fajnlamp:5.6 -f Dockerfile.fajnlamp_5.6.amd64 .
 #
 # To redirect all build output to build.log file:
-#   docker rmi developmentrunsk/fajnlamp:5.6 --force && > build.log && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnlamp:5.6-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/fajnlamp:5.6 -f Dockerfile.fajnlamp_5.6 . > build.log 2>&1
+#   docker rmi developmentrunsk/fajnlamp:5.6 --force && > build.log && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnlamp:5.6-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/fajnlamp:5.6 -f Dockerfile.fajnlamp_5.6.amd64 . > build.log 2>&1
 #
 # To run the image in interactive mode:
 #   docker run -it developmentrunsk/fajnlamp:5.6 /bin/bash
