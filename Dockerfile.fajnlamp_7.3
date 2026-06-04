@@ -3,10 +3,10 @@
 # ATTENTION: The build commands should be launched being in this project root directory.
 #
 # To rebuild the image with removal of the previous build:
-#   docker rmi developmentrunsk/fajnlamp:7.3 --force && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnlamp:7.3-$(date -u +%Y%m%d%H%M%S) --build-arg TARGETARCH=amd64 -t developmentrunsk/fajnlamp:7.3 -f Dockerfile.fajnlamp_7.3 .
+#   docker rmi developmentrunsk/fajnlamp:7.3 --force && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnlamp:7.3-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/fajnlamp:7.3 -f Dockerfile.fajnlamp_7.3 .
 #
 # To redirect all build output to build.log file:
-#   docker rmi developmentrunsk/fajnlamp:7.3 --force && > build.log && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnlamp:7.3-$(date -u +%Y%m%d%H%M%S) --build-arg TARGETARCH=amd64 -t developmentrunsk/fajnlamp:7.3 -f Dockerfile.fajnlamp_7.3 . > build.log 2>&1
+#   docker rmi developmentrunsk/fajnlamp:7.3 --force && > build.log && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnlamp:7.3-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/fajnlamp:7.3 -f Dockerfile.fajnlamp_7.3 . > build.log 2>&1
 #
 # To run the image in interactive mode:
 #   docker run -it developmentrunsk/fajnlamp:7.3 /bin/bash
@@ -68,9 +68,6 @@
 # NOTE: If there is some missing <command> in this docker image then try `busybox <command>`.
 FROM php:7.3-apache
 
-# Target architecture provided automatically by `docker buildx` (amd64, arm64, ...)
-ARG TARGETARCH=amd64
-
 # Use to check the actual version of image inside of container
 ARG IMAGE_VERSION=fajnlamp:7.3-202606031316
 ENV IMAGE_VERSION=${IMAGE_VERSION}
@@ -119,9 +116,10 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         libxslt-dev \
         # library needed for zip (installed here below).
         libzip-dev \
-    # Install wkhtmltopdf with patched Qt (architecture-specific package)
+    # Install wkhtmltopdf with patched Qt (architecture detected via `dpkg --print-architecture`)
     && apt-get install -y xfonts-base xfonts-75dpi \
-    && curl -Lo /tmp/wkhtmltox.deb https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.buster_${TARGETARCH}.deb \
+    && ARCH="$(dpkg --print-architecture)" \
+    && curl -Lo /tmp/wkhtmltox.deb https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.buster_${ARCH}.deb \
     && dpkg -i /tmp/wkhtmltox.deb \
     && apt-get -f install -y \
     && rm -rf /tmp/wkhtmltox.deb \
