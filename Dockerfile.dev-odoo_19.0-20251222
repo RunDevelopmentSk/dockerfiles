@@ -28,7 +28,7 @@
 # 
 # To list all containers (even with temporary ones which are preserved even after 
 # they are stopped, see https://stackoverflow.com/a/56537550/1245149):
-#   docker container ls --all --size
+#   docker container ls --all --size --format "table {{.Names}}\t{{.Size}}\t{{.Status}}"
 # 
 # To list all volumes:
 #   docker volume ls
