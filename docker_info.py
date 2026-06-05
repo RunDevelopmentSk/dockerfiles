@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Zobrazí prehľad Docker kontajnerov a volumes zoradených podľa veľkosti (od najväčších po najmenšie)."""
+"""Zobrazí prehľad Docker images, kontajnerov, volumes a build cache zoradených podľa veľkosti."""
 
 import subprocess
 import re
@@ -139,6 +139,119 @@ def get_containers_with_sizes() -> list[tuple[str, int, int, str]]:
     return containers
 
 
+def get_images_with_sizes() -> list[tuple[str, int, int, int, str]]:
+    """
+    Vráti zoznam (názov, unique_bytes, shared_bytes, virtual_bytes, containers)
+    pre všetky Docker images. unique_bytes = skutočné miesto na disku.
+    Využíva 'docker system df -v'.
+    """
+    try:
+        result = subprocess.run(
+            ["docker", "system", "df", "-v"],
+            capture_output=True, text=True, check=True
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Chyba pri spustení docker: {e.stderr}", file=sys.stderr)
+        sys.exit(1)
+    except FileNotFoundError:
+        print("Docker nie je nainštalovaný alebo nie je dostupný v PATH.", file=sys.stderr)
+        sys.exit(1)
+
+    images = []
+    in_section = False
+    header_found = False
+    col: dict[str, int] = {}
+
+    for line in result.stdout.splitlines():
+        stripped = line.strip()
+
+        if re.match(r"images space usage", stripped, re.IGNORECASE):
+            in_section = True
+            header_found = False
+            continue
+
+        if not in_section:
+            continue
+
+        if re.match(r"REPOSITORY", stripped, re.IGNORECASE):
+            header_found = True
+            # Pozície stĺpcov z hlavičky — SIZE musí byť pred SHARED SIZE
+            col['shared'] = line.index('SHARED SIZE')
+            col['unique'] = line.index('UNIQUE SIZE')
+            col['containers'] = line.index('CONTAINERS')
+            col['size'] = line.index('SIZE')   # prvý výskyt = standalone SIZE
+            continue
+
+        if stripped == "":
+            if header_found:
+                in_section = False
+                header_found = False
+            continue
+
+        if header_found and col:
+            repo_part  = line[:col['size']].strip()
+            size_str   = line[col['size']:col['shared']].strip()
+            shared_str = line[col['shared']:col['unique']].strip()
+            unique_str = line[col['unique']:col['containers']].strip()
+            containers_str = line[col['containers']:].strip()
+
+            # repo_part = "REPO   TAG   IMAGE_ID   CREATED …"
+            parts  = re.split(r'\s{2,}', repo_part)
+            repo   = parts[0] if len(parts) > 0 else "<none>"
+            tag    = parts[1] if len(parts) > 1 else "<none>"
+            img_id = parts[2] if len(parts) > 2 else ""
+
+            if repo == "<none>" and tag == "<none>":
+                name = f"<none> ({img_id})"
+            elif tag in ("<none>", ""):
+                name = repo
+            else:
+                name = f"{repo}:{tag}"
+
+            images.append((
+                name,
+                parse_size_to_bytes(unique_str),
+                parse_size_to_bytes(shared_str),
+                parse_size_to_bytes(size_str),
+                containers_str,
+            ))
+
+    return images
+
+
+def get_build_cache_summary() -> tuple[int, int, int]:
+    """
+    Vráti (počet_záznamov, total_bytes, reclaimable_bytes) pre build cache.
+    Využíva 'docker system df'.
+    """
+    try:
+        result = subprocess.run(
+            ["docker", "system", "df"],
+            capture_output=True, text=True, check=True
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Chyba pri spustení docker: {e.stderr}", file=sys.stderr)
+        sys.exit(1)
+    except FileNotFoundError:
+        print("Docker nie je nainštalovaný alebo nie je dostupný v PATH.", file=sys.stderr)
+        sys.exit(1)
+
+    for line in result.stdout.splitlines():
+        if re.match(r"build cache", line.strip(), re.IGNORECASE):
+            # "Build Cache   2753   0   71.37GB   70.33GB (98%)"
+            parts = line.split()
+            if len(parts) >= 6:
+                try:
+                    return (
+                        int(parts[2]),
+                        parse_size_to_bytes(parts[4]),
+                        parse_size_to_bytes(parts[5]),
+                    )
+                except (ValueError, IndexError):
+                    pass
+    return (0, 0, 0)
+
+
 def print_section(title: str, rows: list, col_name: int, columns: list[tuple[str, int, str]]):
     """Vypíše zarovnanú sekciu tabuľky so zadanými stĺpcami."""
     # Zostav header
@@ -168,6 +281,34 @@ def print_section(title: str, rows: list, col_name: int, columns: list[tuple[str
 
 
 def main():
+    # ── IMAGES ───────────────────────────────────────────────────────────────
+    images = get_images_with_sizes()
+
+    if not images:
+        print("\nNenašli sa žiadne Docker images.")
+    else:
+        images.sort(key=lambda x: x[1], reverse=True)
+        col_name = max(max(len(img[0]) for img in images), 5)
+
+        rows = [
+            (name, format_size(unique), format_size(shared), format_size(virtual), containers)
+            for name, unique, shared, virtual, containers in images
+        ]
+        print_section(
+            "Docker images zoradené podľa skutočnej veľkosti na disku:",
+            rows, col_name,
+            [("UNIQUE", 12, ">"), ("SHARED", 12, ">"), ("VIRTUAL", 12, ">"), ("KONT.", 6, ">")],
+        )
+        total_unique = sum(img[1] for img in images)
+        total_virtual = sum(img[3] for img in images)
+        print(
+            f"{'CELKOM':<{col_name}}  {format_size(total_unique):>12}  {'':>12}  {format_size(total_virtual):>12}"
+        )
+        print(f"\nPočet images: {len(images)}")
+        print("  UNIQUE  = vrstvy unikátne pre daný image (skutočné miesto na disku)")
+        print("  SHARED  = vrstvy zdieľané s inými images (na disku uložené len raz)")
+        print("  VIRTUAL = celková veľkosť vrátane zdieľaných vrstiev\n")
+
     # ── KONTAJNERY ──────────────────────────────────────────────────────────
     containers = get_containers_with_sizes()
 
@@ -213,6 +354,18 @@ def main():
         total = sum(v[1] for v in volumes)
         print(f"{'CELKOM':<{col_name}}  {format_size(total):>12}")
         print(f"\nPočet volumes: {len(volumes)}\n")
+
+    # ── BUILD CACHE ───────────────────────────────────────────────────────────
+    entries, total_bytes, reclaimable_bytes = get_build_cache_summary()
+    if entries > 0:
+        pct = int(reclaimable_bytes / total_bytes * 100) if total_bytes else 0
+        print("-" * 100)
+        print(f"  Build cache: {format_size(total_bytes)}"
+              f"  ({entries} záznamov,"
+              f"  uvoľniteľných: {format_size(reclaimable_bytes)} / {pct} %)")
+        print(f"  Vyčistiť:    docker builder prune")
+        print("-" * 100)
+    print()
 
 
 if __name__ == "__main__":

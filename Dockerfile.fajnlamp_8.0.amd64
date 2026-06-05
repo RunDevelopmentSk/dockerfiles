@@ -61,6 +61,9 @@
 # To remove an volume by its name:
 #   docker volume rm <volume_name>
 #
+# To cleanup builder cache:
+#   docker builder prune
+#
 # ATTENTION: If you get an error "all predefined address pools have been fully subnetted" on devcontainer start,
 # then remove all unused networks:
 #   docker network prune

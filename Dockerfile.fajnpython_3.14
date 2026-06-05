@@ -60,6 +60,10 @@
 #
 # To remove an volume by its name:
 #   docker volume rm <volume_name>
+#
+# To cleanup builder cache:
+#   docker builder prune
+#
 FROM mcr.microsoft.com/devcontainers/python:2-3.14-trixie
 
 USER root
