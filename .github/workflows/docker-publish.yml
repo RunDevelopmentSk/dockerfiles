@@ -118,7 +118,7 @@ jobs:
           TS=$(date -u +%Y%m%d%H%M%S)
           echo "image_version=${{ matrix.image }}:${{ matrix.tag }}-${TS}" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@v4
 
       - uses: docker/setup-buildx-action@v4
 
