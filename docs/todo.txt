@@ -2,3 +2,5 @@
     - ak sa zmení `.github/workflows/docker-publish.yml`, tak nech sa spustí build pre všetký Dockerfiles (samozrejme okrem vynechaných `.test`)
     - ak sa zmení `dev-odoo-entrypoint.sh`, tak nech sa spustí build pre všetky Dockefiles, ktoré tento `.sh` používajú
     - ak sa zmení názov niektorého z Dockerfile alebo `.sh` súborov tak nech sa spustí build pre všetky dotknuté súbory
+- pridť devcontainer (fajnubuntu_noble-20251013)
+- preniesť pre-commit z drinkcentrum-is
