@@ -139,6 +139,56 @@ def get_containers_with_sizes() -> list[tuple[str, int, int, str]]:
     return containers
 
 
+def get_networks_summary() -> tuple[list[tuple[str, str, str]], int]:
+    """
+    Vráti (zoznam (name, driver, subnet), celkový_počet_všetkých_sietí).
+    Využíva 'docker network ls' a 'docker network inspect'.
+    """
+    try:
+        ls_result = subprocess.run(
+            ["docker", "network", "ls", "--format", "{{.ID}}\t{{.Name}}\t{{.Driver}}"],
+            capture_output=True, text=True, check=True
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Chyba pri spustení docker: {e.stderr}", file=sys.stderr)
+        sys.exit(1)
+    except FileNotFoundError:
+        print("Docker nie je nainštalovaný alebo nie je dostupný v PATH.", file=sys.stderr)
+        sys.exit(1)
+
+    all_networks = []
+    bridge_ids = []
+
+    for line in ls_result.stdout.splitlines():
+        parts = line.strip().split("\t")
+        if len(parts) < 3:
+            continue
+        net_id, name, driver = parts[0], parts[1], parts[2]
+        all_networks.append((name, driver))
+        if driver == "bridge":
+            bridge_ids.append(net_id)
+
+    # Pre bridge siete zisti subnet cez inspect
+    networks = []
+    if bridge_ids:
+        insp = subprocess.run(
+            ["docker", "network", "inspect"] + bridge_ids +
+            ["--format", "{{.Name}}\t{{.Driver}}\t{{range .IPAM.Config}}{{.Subnet}}{{end}}"],
+            capture_output=True, text=True
+        )
+        for line in insp.stdout.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split("\t")
+            name   = parts[0] if len(parts) > 0 else ""
+            driver = parts[1] if len(parts) > 1 else "bridge"
+            subnet = parts[2] if len(parts) > 2 else ""
+            networks.append((name, driver, subnet))
+
+    return networks, len(all_networks)
+
+
 def get_images_with_sizes() -> list[tuple[str, int, int, int, str]]:
     """
     Vráti zoznam (názov, unique_bytes, shared_bytes, virtual_bytes, containers)
@@ -355,6 +405,27 @@ def main():
         print(f"{'CELKOM':<{col_name}}  {format_size(total):>12}")
         print(f"\nPočet volumes: {len(volumes)}\n")
 
+    # ── NETWORKS ─────────────────────────────────────────────────────────────
+    bridge_networks, total_networks = get_networks_summary()
+
+    # Predvolený Docker limit: 16 sietí z 172.16.0.0/12 + 16 z 192.168.0.0/16 = 32
+    BRIDGE_POOL_LIMIT = 32
+    bridge_used = len(bridge_networks)
+    bridge_free = BRIDGE_POOL_LIMIT - bridge_used
+
+    sep = "-" * 100
+    print(sep)
+    print(f"  Networks: celkom {total_networks}"
+          f"  |  bridge: {bridge_used} použité / {BRIDGE_POOL_LIMIT} dostupných"
+          f"  ({bridge_free} voľných)")
+    if bridge_networks:
+        col = max(len(n[0]) for n in bridge_networks)
+        for name, _, subnet in sorted(bridge_networks, key=lambda x: x[2]):
+            print(f"    {name:<{col}}  {subnet}")
+    print("  Vyčistiť nepoužívané:  docker network prune")
+    print(sep)
+    print()
+
     # ── BUILD CACHE ───────────────────────────────────────────────────────────
     entries, total_bytes, reclaimable_bytes = get_build_cache_summary()
     if entries > 0:
@@ -363,7 +434,7 @@ def main():
         print(f"  Build cache: {format_size(total_bytes)}"
               f"  ({entries} záznamov,"
               f"  uvoľniteľných: {format_size(reclaimable_bytes)} / {pct} %)")
-        print(f"  Vyčistiť:    docker builder prune")
+        print("  Vyčistiť:    docker builder prune")
         print("-" * 100)
     print()
 
