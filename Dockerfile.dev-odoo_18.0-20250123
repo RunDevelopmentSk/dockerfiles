@@ -173,14 +173,16 @@ RUN mkdir -p /home/developer/.vscode-server/data/User/globalStorage
 
 RUN \
     # Install following Python packages:
-    # NOTE: Since the Odoo is installed using system-wide python we must install system-wide 
+    # NOTE: Since the Odoo is installed using system-wide python we must install system-wide
     # also debugpy and other python packages to make it work with system-wide python.
-    # As we are in Docker container (where we control the entire environment), we can tell pip 
+    # As we are in Docker container (where we control the entire environment), we can tell pip
     # it’s okay to modify the system environment by passing the --break-system-packages option
     # (and so bypass/ignore/break https://peps.python.org/pep-0668/)
     pip3 install --break-system-packages \
         # `debugpy` to allow odoo debugging in VS Code
         debugpy \
+        # `pipx` to install Python CLI tools in isolated environments
+        pipx \
         # upgrade utils for migrations
         # see https://www.odoo.com/documentation/17.0/developer/reference/upgrades/upgrade_utils.html
         git+https://github.com/odoo/upgrade-util@master

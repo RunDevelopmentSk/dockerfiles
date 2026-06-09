@@ -130,6 +130,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         libxslt-dev \
         # library needed for zip (installed here below).
         libzip-dev \
+        # `pipx` to install Python CLI tools in isolated environments
+        pipx \
     # Install wkhtmltopdf with patched Qt (architecture detected via `dpkg --print-architecture`)
     && apt-get install -y xfonts-base xfonts-75dpi \
     && ARCH="$(dpkg --print-architecture)" \

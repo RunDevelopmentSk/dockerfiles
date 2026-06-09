@@ -90,6 +90,9 @@ RUN rm -f /etc/apt/sources.list.d/yarn.list \
 # Use the vscode user to run the container
 USER vscode
 
+# Install pipx to install Python CLI tools in isolated environments
+RUN pip install pipx
+
 # Create directory for VS Code global storage data (e.g. augment code threads)
 # to preserve them even after the container is rebuild
 # NOTE: It is created here explicitly to ensure it has `vscode` as owner.

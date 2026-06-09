@@ -168,6 +168,8 @@ RUN \
     pip3 install \
         # `debugpy` to allow odoo debugging in VS Code
         debugpy \
+        # `pipx` to install Python CLI tools in isolated environments
+        pipx \
         # upgrade utils for migrations
         # see https://www.odoo.com/documentation/17.0/developer/reference/upgrades/upgrade_utils.html
         git+https://github.com/odoo/upgrade-util@master

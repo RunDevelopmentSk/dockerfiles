@@ -115,6 +115,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         poppler-utils \
         # `pip` for Python package management (python3 is pre-installed in Ubuntu Noble)
         python3-pip \
+        # `pipx` to install Python CLI tools in isolated environments
+        pipx \
     # Make `python` an alias for `python3`
     && ln -s /usr/bin/python3 /usr/local/bin/python \
     # Clean up the package manager's local repository of retrieved package files
