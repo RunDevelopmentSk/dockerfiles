@@ -87,6 +87,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get install -y --no-install-recommends \
         # `sudo` to allow super user operations
         sudo \
+        # `curl` to allow use of `curl` command
+        curl \
         # `gawk` replaces default `mawk` as /usr/bin/awk; required by Codex
         # CLI installer which uses interval regex `{64}` not supported by mawk
         # (see https://github.com/openai/codex/issues/24219)

@@ -101,6 +101,8 @@ RUN apt-get update -o Acquire::Check-Valid-Until=false && export DEBIAN_FRONTEND
         git \
         # `openssh-client` to enable ssh command
         openssh-client \
+        # `curl` to allow use of `curl` command
+        curl \
         # linux tools, e.g. `busybox vi` (vi), `busybox less` (less), `busybox grep` (grep), etc.
         busybox \
         # `gawk` replaces default `mawk` as /usr/bin/awk; required by Codex

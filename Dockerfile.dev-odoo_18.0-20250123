@@ -92,6 +92,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         git \
         # `openssh-client` to enable ssh command
         openssh-client \
+        # `curl` to allow use of `curl` command
+        curl \
         # linux tools, e.g. `busybox vi` (vi), `busybox less` (less), `busybox grep` (grep), etc.
         busybox \
         # `python3 venv` to be used here below

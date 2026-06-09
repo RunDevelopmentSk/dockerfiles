@@ -17,39 +17,39 @@
 #   docker login
 #   docker push developmentrunsk/fajnpython:3.14
 #   docker logout
-# 
+#
 # IMAGES, CONTAINERS & VOLUMES INFO COMMANDS:
 # -------------------------------------------
 # To list all images (without intermediate ones which does not spend dick space):
 #   docker image ls
-# 
+#
 # To list all images (even with intermediate ones):
 #   docker image ls --all
-# 
-# To list all containers (even with temporary ones which are preserved even after 
+#
+# To list all containers (even with temporary ones which are preserved even after
 # they are stopped, see https://stackoverflow.com/a/56537550/1245149):
 #   docker container ls --all --size --format "table {{.Names}}\t{{.Size}}\t{{.Status}}"
-# 
+#
 # To list all volumes:
 #   docker volume ls
-# 
+#
 # To find size of all volumes inspect some of volumes at first to find a path to all volumes directories
 # and then use `du` (disk usage) to find out spent disk spage (e.g. for docker volumes on linux):
 #   docker volume inspect <volume_name>
 #   sudo du -sh /var/lib/docker/volumes/
 # Or for given <volume_name>:
 #   sudo du -sh /var/lib/docker/volumes/<volume_name>
-# 
+#
 # IMAGES, CONTAINERS & VOLUMES CLEANUP COMMANDS:
 # ----------------------------------------------
-# To clean up disk space remove at first temporary containers (otherwise their existence 
+# To clean up disk space remove at first temporary containers (otherwise their existence
 # will block removal of dangling images) and then remove dangling images:
 #   docker container prune
 #   docker image prune
-# 
+#
 # To remove all unused images (not just the dangling ones):
 #   docker image prune --all
-# 
+#
 # To remove an image by its id:
 #   docker image rm <image_id>
 #
@@ -78,12 +78,14 @@ RUN rm -f /etc/apt/sources.list.d/yarn.list \
     && apt-get install -y --no-install-recommends \
         # `bubblewrap` is used by `codex` CLI
         bubblewrap \
+        # `curl` to allow use of `curl` command
+        curl \
         # `sudo` command
         sudo \
         # and you can add any other here below:
         # ... \
     # Clean up the package manager's local repository of retrieved package files
-    # and remove the package lists that were downloaded earlier 
+    # and remove the package lists that were downloaded earlier
     # to reduce the size of the final Docker image
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
