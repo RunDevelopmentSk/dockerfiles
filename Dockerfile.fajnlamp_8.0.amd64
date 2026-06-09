@@ -125,8 +125,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         libxslt-dev \
         # library needed for zip (installed here below).
         libzip-dev \
-        # `pipx` to install Python CLI tools in isolated environments
-        pipx \
+        # `python3-pip` needed to install pipx here below
+        python3-pip \
     # Install wkhtmltopdf with patched Qt (architecture detected via `dpkg --print-architecture`)
     && apt-get install -y xfonts-base xfonts-75dpi \
     && ARCH="$(dpkg --print-architecture)" \
@@ -201,6 +201,9 @@ RUN groupadd -g 1000 developer \
 RUN chown -R developer:developer /var/www
 # Use the created user to run the container
 USER developer
+
+# Install pipx to install Python CLI tools in isolated environments
+RUN pip3 install pipx
 
 # Install nvm and Node.js 10 (Gitbook, Gulp), 17 (Gulp), 24 (Auggie)
 ENV NVM_DIR="/home/developer/.nvm"
