@@ -165,6 +165,12 @@ ENV HISTFILE=/home/developer/preserved/.bash_history
 # Otherwise it would be created with `root` as owner because it is mapped to named volume in docker-compose.yml.
 RUN mkdir -p /home/developer/.vscode-server/data/User/globalStorage
 
+# Create empty config files and .ssh directory in user's home directory
+# NOTE: Created here explicitly to ensure they have `developer` as owner.
+RUN touch /home/developer/.hgrc \
+    && touch /home/developer/.gitconfig \
+    && mkdir -p /home/developer/.ssh
+
 RUN \
     # Install following Python packages:
     pip3 install \

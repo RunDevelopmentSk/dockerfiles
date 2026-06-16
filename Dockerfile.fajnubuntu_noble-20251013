@@ -148,6 +148,12 @@ ENV HISTFILE=/home/ubuntu/preserved/.bash_history
 # Otherwise it would be created with `root` as owner because it is mapped to named volume in docker-compose.yml.
 RUN mkdir -p /home/ubuntu/.vscode-server/data/User/globalStorage
 
+# Create empty config files and .ssh directory in user's home directory
+# NOTE: Created here explicitly to ensure they have `ubuntu` as owner.
+RUN touch /home/ubuntu/.hgrc \
+    && touch /home/ubuntu/.gitconfig \
+    && mkdir -p /home/ubuntu/.ssh
+
 # Install nvm and Node 24 for ubuntu user (required by Auggie CLI and other Node-based tools)
 ENV NVM_DIR="/home/ubuntu/.nvm"
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash \

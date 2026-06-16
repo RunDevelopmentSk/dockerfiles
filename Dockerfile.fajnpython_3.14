@@ -101,6 +101,12 @@ RUN pip install pipx
 # Otherwise it would be created with `root` as owner because it is mapped to named volume in docker-compose.yml.
 RUN mkdir -p /home/vscode/.vscode-server/data/User/globalStorage
 
+# Create empty config files and .ssh directory in user's home directory
+# NOTE: Created here explicitly to ensure they have `vscode` as owner.
+RUN touch /home/vscode/.hgrc \
+    && touch /home/vscode/.gitconfig \
+    && mkdir -p /home/vscode/.ssh
+
 # Install nvm and Node 24 for vscode user (required by Auggie CLI and other Node-based tools)
 ENV NVM_DIR="/home/vscode/.nvm"
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash \
