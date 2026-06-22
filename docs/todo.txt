@@ -4,3 +4,4 @@
     - ak sa zmení názov niektorého z Dockerfile alebo `.sh` súborov tak nech sa spustí build pre všetky dotknuté súbory
 - pridť devcontainer (fajnubuntu_noble-20251013)
 - preniesť pre-commit z drinkcentrum-is
+- aby sa v odoo 17 (python 3.10) dalo spustiť pipx tak je (zrejme) potrebné nainštalovať `apt install python3.10-venv` - prever to

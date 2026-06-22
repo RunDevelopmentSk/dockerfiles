@@ -78,6 +78,8 @@ RUN rm -f /etc/apt/sources.list.d/yarn.list \
     && apt-get install -y --no-install-recommends \
         # `bubblewrap` is used by `codex` CLI
         bubblewrap \
+        # `libatomic1` is required by Node.js 25+ as a runtime dependency
+        libatomic1 \
         # `curl` to allow use of `curl` command
         curl \
         # `sudo` command

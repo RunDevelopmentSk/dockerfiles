@@ -108,6 +108,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         gawk \
         # `bubblewrap` is used by `codex` CLI
         bubblewrap \
+        # `libatomic1` is required by Node.js 25+ as a runtime dependency
+        libatomic1 \
         # `mysql` to allow access and import MySQL DB:
         # - `mysql -u root -proot -h db --default-character-set=utf8 -D project`
         # - `SOURCE dumpfile.sql`

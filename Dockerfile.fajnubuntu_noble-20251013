@@ -102,6 +102,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         busybox \
         # `bubblewrap` is used by `codex` CLI
         bubblewrap \
+        # `libatomic1` is required by Node.js 25+ as a runtime dependency
+        libatomic1 \
         # `ffmpeg` to process audio and video files
         ffmpeg \
         # `gcc` and `python3-dev` to compile Python C extensions (e.g. webrtcvad used by resemblyzer)
