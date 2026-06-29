@@ -1,0 +1,2 @@
+# Installed by .devcontainer/devcontainer.json > "postCreateCommand"
+pre-commit
