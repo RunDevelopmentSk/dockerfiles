@@ -74,10 +74,15 @@ jobs:
             fi
 
             # Detect *.amd64 suffix → single-platform build; strip suffix before parsing.
+            # Single-platform builds disable attestations so buildx pushes a plain
+            # single-arch image manifest (not an OCI index with an unknown/unknown
+            # entry), which stays pullable on ARM hosts via platform: linux/amd64.
             PLATFORMS="linux/amd64,linux/arm64"
+            ATTEST="true"
             PARSE_FILE="$f"
             if [[ "$f" == *.amd64 ]]; then
               PLATFORMS="linux/amd64"
+              ATTEST="false"
               PARSE_FILE="${f%.amd64}"
               echo "::notice file=$f::$f will be built for linux/amd64 only"
             fi
@@ -89,8 +94,9 @@ jobs:
             fi
             IMAGE="${REST%%_*}"
             TAG="${REST#*_}"
-            ITEM=$(jq -nc --arg f "$f" --arg i "$IMAGE" --arg t "$TAG" --arg p "$PLATFORMS" \
-                   '{dockerfile:$f, image:$i, tag:$t, platforms:$p}')
+            ITEM=$(jq -nc --arg f "$f" --arg i "$IMAGE" --arg t "$TAG" \
+                   --arg p "$PLATFORMS" --arg a "$ATTEST" \
+                   '{dockerfile:$f, image:$i, tag:$t, platforms:$p, attest:$a}')
             INCLUDE=$(jq -c --argjson item "$ITEM" '. + [$item]' <<< "$INCLUDE")
           done
 
@@ -133,6 +139,8 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           platforms: ${{ matrix.platforms }}
+          provenance: ${{ matrix.attest }}
+          sbom: ${{ matrix.attest }}
           push: true
           pull: true
           build-args: |
