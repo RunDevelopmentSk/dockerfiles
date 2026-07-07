@@ -229,6 +229,9 @@ USER developer
 # Install pipx to install Python CLI tools in isolated environments
 RUN pip3 install pipx
 
+# Install uv, an extremely fast Python package and project manager
+RUN pip3 install uv
+
 # Install nvm and Node.js 10 (Gitbook, Gulp), 17 (Gulp), 24 (Auggie)
 ENV NVM_DIR="/home/developer/.nvm"
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash \

@@ -17,39 +17,39 @@
 #   docker login
 #   docker push developmentrunsk/dev-odoo:19.0-20251222
 #   docker logout
-# 
+#
 # IMAGES, CONTAINERS & VOLUMES INFO COMMANDS:
 # -------------------------------------------
 # To list all images (without intermediate ones which does not spend dick space):
 #   docker image ls
-# 
+#
 # To list all images (even with intermediate ones):
 #   docker image ls --all
-# 
-# To list all containers (even with temporary ones which are preserved even after 
+#
+# To list all containers (even with temporary ones which are preserved even after
 # they are stopped, see https://stackoverflow.com/a/56537550/1245149):
 #   docker container ls --all --size --format "table {{.Names}}\t{{.Size}}\t{{.Status}}"
-# 
+#
 # To list all volumes:
 #   docker volume ls
-# 
+#
 # To find size of all volumes inspect some of volumes at first to find a path to all volumes directories
 # and then use `du` (disk usage) to find out spent disk spage (e.g. for docker volumes on linux):
 #   docker volume inspect <volume_name>
 #   sudo du -sh /var/lib/docker/volumes/
 # Or for given <volume_name>:
 #   sudo du -sh /var/lib/docker/volumes/<volume_name>
-# 
+#
 # IMAGES, CONTAINERS & VOLUMES CLEANUP COMMANDS:
 # ----------------------------------------------
-# To clean up disk space remove at first temporary containers (otherwise their existence 
+# To clean up disk space remove at first temporary containers (otherwise their existence
 # will block removal of dangling images) and then remove dangling images:
 #   docker container prune
 #   docker image prune
-# 
+#
 # To remove all unused images (not just the dangling ones):
 #   docker image prune --all
-# 
+#
 # To remove an image by its id:
 #   docker image rm <image_id>
 #
@@ -73,7 +73,7 @@ USER root
 ARG IMAGE_VERSION=dev-odoo:19.0-20251222-202606031315
 ENV IMAGE_VERSION=${IMAGE_VERSION}
 
-# Let the scripts running in docker container using this image to know that 
+# Let the scripts running in docker container using this image to know that
 # they are running in docker container on localhost (it means in development mode).
 # Possible values of this variable are onLocalhost, inProduction.
 ENV IN_DOCKER=onLocalhost
@@ -111,7 +111,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         # and you can add any other here below:
         # ... \
     # Clean up the package manager's local repository of retrieved package files
-    # and remove the package lists that were downloaded earlier 
+    # and remove the package lists that were downloaded earlier
     # to reduce the size of the final Docker image
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
@@ -133,20 +133,20 @@ RUN \
 
 RUN \
     # Remove the existing `ubuntu` user and group having UID/GID (1000:1000).
-    # NOTE: The reason to do this (instead of use `ubuntu` user directly) is to have 
+    # NOTE: The reason to do this (instead of use `ubuntu` user directly) is to have
     # the same `developer` user (see here below) in all dev-odoo images (17, 18, ...)
     # and so to be able to use the same docker-compose.yml and devcontainer.json for all images.
     userdel -r ubuntu || true \
     && groupdel ubuntu || true \
-    # Create `developer` user and group with specific UID/GID (1000:1000) to simulate a user on 
-    # hosting system. This user is used as devcontainer user (see `devcontainer.json` > `"remoreUser"`) 
+    # Create `developer` user and group with specific UID/GID (1000:1000) to simulate a user on
+    # hosting system. This user is used as devcontainer user (see `devcontainer.json` > `"remoreUser"`)
     # to allow devcontainer create necessary config files in home directory of `developer` user.
     && groupadd -g 1000 developer \
     && useradd -u 1000 -g developer -m -s /bin/bash developer \
     # Add developer to odoo group
     && usermod -aG odoo developer \
     # Allow developer user to execute sudo without a password
-    && echo "developer ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/developer 
+    && echo "developer ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/developer
 
 # Add /home/developer/.local/bin to PATH
 ENV PATH="/home/developer/.local/bin:${PATH}"
@@ -194,6 +194,8 @@ RUN \
         debugpy \
         # `pipx` to install Python CLI tools in isolated environments
         pipx \
+        # `uv`, an extremely fast Python package and project manager
+        uv \
         # upgrade utils for migrations
         # see https://www.odoo.com/documentation/19.0/developer/reference/upgrades/upgrade_utils.html
         git+https://github.com/odoo/upgrade-util@master

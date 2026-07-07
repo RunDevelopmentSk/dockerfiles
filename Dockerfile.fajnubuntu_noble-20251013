@@ -135,6 +135,10 @@ USER ubuntu
 # Add user-local bin to PATH (for pip-installed scripts)
 ENV PATH="/home/ubuntu/.local/bin:$PATH"
 
+# Install uv, an extremely fast Python package and project manager
+# (uv is not available via apt, so install it using pipx)
+RUN pipx install uv
+
 # Create a directory for the workspaces
 RUN mkdir -p /home/ubuntu/workspaces
 
