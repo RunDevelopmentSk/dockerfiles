@@ -1,7 +1,85 @@
 - `.github/workflows/docker-publish.yml`:
-    - ak sa zmení `.github/workflows/docker-publish.yml`, tak nech sa spustí build pre všetký Dockerfiles (samozrejme okrem vynechaných `.test`)
-    - ak sa zmení `dev-odoo-entrypoint.sh`, tak nech sa spustí build pre všetky Dockefiles, ktoré tento `.sh` používajú
-    - ak sa zmení názov niektorého z Dockerfile alebo `.sh` súborov tak nech sa spustí build pre všetky dotknuté súbory
-- pridť devcontainer (fajnubuntu_noble-20251013)
-- preniesť pre-commit z drinkcentrum-is
-- aby sa v odoo 17 (python 3.10) dalo spustiť pipx tak je (zrejme) potrebné nainštalovať `apt install python3.10-venv` - prever to
+    - if `.github/workflows/docker-publish.yml` changes, let it trigger a build for all Dockerfiles (of course, except the excluded `.test` ones)
+    - if `dev-odoo-entrypoint.sh` changes, let it trigger a build for all Dockerfiles that use this `.sh`
+    - if the name of any Dockerfile or `.sh` file changes, let it trigger a build for all affected files
+- add devcontainer (fajnubuntu_noble-20251013)
+- transfer pre-commit from drinkcentrum-is
+- in order to run pipx in odoo 17 (python 3.10), it is (apparently) necessary to install `apt install python3.10-venv` - check this
+
+---
+How to write todo:
+
+*****************************************
+NOTES ON MAIN TASK (~TICKET) ABC
+*****************************************
+x finish this
+- check that
+- fix the bug there
+- on the KLM page:
+    - check this
+    x finish that
+    x? how should I do this?
+        >> Client said like this...
+- translate that
+-? I really don't understand this. How should I do it?
+-! definitely do not forget this!
+-+ this was not in the original estimate
+x+ this was also not in the original estimate but I did it
+
+-----------------------------------------------------------------
+Notes on sub-task (~sub-task of the ticket) or notes subsection
+-----------------------------------------------------------------
+- on the sub-task I have not finished that
+
+------
+Suggestions
+------
+- the client did not want this yet but the coded functionality could be extended like this, need to ask them
+
+*****************************
+THE SYNTAX OF NOTES IS AS FOLLOWS
+*****************************
+- task
+x completed task
+-x cancelled task
+-! important task
+x! completed important task
+-? question
+x? answered question
+    >> Answer to the question
+-?! important question
+x?! answered important question
+    >> Answer to the question
+-+ task that was not in the estimated time
+-+! tutti-brutti task that was not in the estimated time
+x+ task that was not in the estimated time but was done
+- task with sub-tasks
+    - sub-task
+    x completed sub-task
+    -? question regarding the task
+    x? answered question regarding the task >> Answer to the question
+- note with a list whose items are not sub-tasks:
+    -- this is not a sub-task
+    -- neither is this a sub-task
+
+***********************
+MAIN TASK (~TICKET)
+***********************
+- ...
+
+------------------------------------------------------
+Sub-task (~sub-task of the ticket) or notes subsection
+------------------------------------------------------
+- ...
+
+---------------------------------------------
+Searching for tasks using regular expressions
+---------------------------------------------
+- unfinished tasks (with questions):    ^\s*-[^\-x]
+- completed tasks (with questions):      ^\s*x\??!?
+- unfinished tasks (without questions):   ^\s*-[^\-x\?]
+- completed tasks (without questions):     ^\s*x!?[^\?]
+- cancelled tasks:                        ^\s*-x
+- unanswered questions:                 ^\s*-\?!?
+- answered questions:                   ^\s*x\?!?
+- tasks that were not in the estimated time: ^\s*[\-x]\+!?

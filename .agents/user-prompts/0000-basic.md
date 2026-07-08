@@ -1,3 +1,3 @@
-K zadaniu v súbore .agents/user-prompts/???.md vytvor analýzu a návrh zapracovania do aktuálneho projektu. Následne počkaj na moju kontrolu tvojho návrhu.
+For the task in file .agents/user-prompts/???.md, create an analysis and implementation proposal for the current project. Then wait for my review of your proposal.
 
-Zapracuj zadanie v súbore .agents/user-prompts/???.md.
+Implement the task in file .agents/user-prompts/???.md.

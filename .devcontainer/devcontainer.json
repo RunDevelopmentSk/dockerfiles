@@ -40,9 +40,9 @@
         "editor.renderWhitespace": "all",
         "editor.renderControlCharacters": true,
         "editor.wordWrap": "on",
-        // Formátovanie aj lintovanie prebieha VÝHRADNE cez pre-commit (.pre-commit-config.yaml),
-        // aby sa editor a pre-commit navzájom "neprebíjali". Editor preto neformátuje pri save
-        // a nerobí žiadne auto-fix akcie.
+        // Formatting and linting takes place EXCLUSIVELY via pre-commit (.pre-commit-config.yaml),
+        // so that the editor and pre-commit do not "clash" with each other. Therefore, the editor does not format on save
+        // and does not perform any auto-fix actions.
         "editor.formatOnSave": false,
         "editor.codeActionsOnSave": {
           "source.fixAll": "never",
@@ -74,15 +74,15 @@
             "--max-line-length=120"
         ],
         //*/
-        // Default formattery ostávajú len pre manuálny "Format Document"; automatika na save
-        // je vypnutá vyššie (formátovanie rieši pre-commit: prettier pre non-py, ruff pre .py).
+        // Default formatters remain only for manual "Format Document"; automation on save
+        // is disabled above (formatting is handled by pre-commit: prettier for non-py, ruff for .py).
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "[python]": {
           "editor.formatOnSave": false,
           "editor.defaultFormatter": "charliermarsh.ruff"
         },
-        // Editor lint diagnostika je vypnutá — lintovanie beží iba cez pre-commit
-        // (ruff check + pylint). Tým sa diagnostiky editora a pre-commitu nerozchádzajú.
+        // Editor lint diagnostics are disabled — linting runs only via pre-commit
+        // (ruff check + pylint). This ensures that editor and pre-commit diagnostics do not diverge.
         "ruff.lint.enable": false,
         "pylint.enabled": false,
         "eslint.enable": false
