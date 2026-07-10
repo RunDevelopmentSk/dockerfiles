@@ -29,7 +29,6 @@
         "DotJoshJohnson.xml",
         "mechatroner.rainbow-csv",
         "geddski.macros",
-        "augment.vscode-augment",
         "openai.chatgpt",
         "anthropic.claude-code"
       ],
@@ -74,7 +73,7 @@
             "--max-line-length=120"
         ],
         //*/
-        // Default formatters remain only for manual "Format Document"; automation on save
+        // Default formatters remain only for manual "Format Document"; auto format on save
         // is disabled above (formatting is handled by pre-commit: prettier for non-py, ruff for .py).
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "[python]": {
@@ -82,7 +81,7 @@
           "editor.defaultFormatter": "charliermarsh.ruff"
         },
         // Editor lint diagnostics are disabled — linting runs only via pre-commit
-        // (ruff check + pylint). This ensures that editor and pre-commit diagnostics do not diverge.
+        // (ruff check + pylint). This keeps editor and pre-commit diagnostics from diverging.
         "ruff.lint.enable": false,
         "pylint.enabled": false,
         "eslint.enable": false

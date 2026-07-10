@@ -10,7 +10,7 @@
 How to write todo:
 
 *****************************************
-NOTES ON MAIN TASK (~TICKET) ABC
+NOTES ON THE MAIN TASK (~TICKET) ABC
 *****************************************
 x finish this
 - check that
@@ -19,26 +19,26 @@ x finish this
     - check this
     x finish that
     x? how should I do this?
-        >> Client said like this...
+        >> The client said like this...
 - translate that
 -? I really don't understand this. How should I do it?
--! definitely do not forget this!
+-! definitely don't forget this!
 -+ this was not in the original estimate
-x+ this was also not in the original estimate but I did it
+x+ this was not in the original estimate either, but I did it
 
 -----------------------------------------------------------------
-Notes on sub-task (~sub-task of the ticket) or notes subsection
+Notes on subtask (~subtask of the ticket) or notes subsection
 -----------------------------------------------------------------
-- on the sub-task I have not finished that
+- on the subtask I haven't finished that
 
-------
+-----------
 Suggestions
-------
-- the client did not want this yet but the coded functionality could be extended like this, need to ask them
+-----------
+- although the client didn't want this yet, the coded functionality could be extended like this, we should ask them
 
-*****************************
-THE SYNTAX OF NOTES IS AS FOLLOWS
-*****************************
+***************************
+NOTE SYNTAX IS AS FOLLOWS
+***************************
 - task
 x completed task
 -x cancelled task
@@ -50,36 +50,36 @@ x? answered question
 -?! important question
 x?! answered important question
     >> Answer to the question
--+ task that was not in the estimated time
--+! tutti-brutti task that was not in the estimated time
-x+ task that was not in the estimated time but was done
-- task with sub-tasks
-    - sub-task
-    x completed sub-task
-    -? question regarding the task
-    x? answered question regarding the task >> Answer to the question
-- note with a list whose items are not sub-tasks:
-    -- this is not a sub-task
-    -- neither is this a sub-task
+-+ task that was not in the time estimate
+-+! tutti-brutti task that was not in the time estimate
+x+ task that was not in the time estimate but was completed
+- task with subtasks
+    - subtask
+    x completed subtask
+    -? question about the task
+    x? answered question about the task >> Answer to the question
+- note with a list whose items are not subtasks:
+    -- this is not a subtask
+    -- neither is this a subtask
 
-***********************
+*********************
 MAIN TASK (~TICKET)
-***********************
+*********************
 - ...
 
 ------------------------------------------------------
-Sub-task (~sub-task of the ticket) or notes subsection
+Subtask (~subtask of the ticket) or notes subsection
 ------------------------------------------------------
 - ...
 
----------------------------------------------
+-----------------------------------------
 Searching for tasks using regular expressions
----------------------------------------------
-- unfinished tasks (with questions):    ^\s*-[^\-x]
-- completed tasks (with questions):      ^\s*x\??!?
-- unfinished tasks (without questions):   ^\s*-[^\-x\?]
-- completed tasks (without questions):     ^\s*x!?[^\?]
-- cancelled tasks:                        ^\s*-x
-- unanswered questions:                 ^\s*-\?!?
-- answered questions:                   ^\s*x\?!?
-- tasks that were not in the estimated time: ^\s*[\-x]\+!?
+-----------------------------------------
+- unfinished tasks (including questions): ^\s*-[^\-x]
+- completed tasks (including questions):   ^\s*x\??!?
+- unfinished tasks (excluding questions):  ^\s*-[^\-x\?]
+- completed tasks (excluding questions):    ^\s*x!?[^\?]
+- cancelled tasks:                         ^\s*-x
+- unanswered questions:                    ^\s*-\?!?
+- answered questions:                      ^\s*x\?!?
+- tasks not in the time estimate:          ^\s*[\-x]\+!?

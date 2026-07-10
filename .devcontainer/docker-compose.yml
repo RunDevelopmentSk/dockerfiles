@@ -29,7 +29,7 @@ services:
       - $HOME/.ssh:/home/ubuntu/.ssh:ro
       # Store image user files placed under preserved folder in named volume
       - app-ubuntu-preserved:/home/ubuntu/preserved
-      # Store VS Code global storage data (e.g. augment code data) in named volume
+      # Store VS Code global storage data in named volume
       # to preserve them even after the container is rebuild
       - app-ubuntu-vscode-global-storage:/home/ubuntu/.vscode-server/data/User/globalStorage
       # Store Claude Code config/login/settings
