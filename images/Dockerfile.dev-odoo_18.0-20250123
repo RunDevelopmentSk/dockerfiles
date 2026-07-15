@@ -1,21 +1,21 @@
 # BUILD & RUN COMMANDS:
 # ---------------------
-# ATTENTION: The build commands should be launched being in this project root directory.
+# ATTENTION: The build commands should be launched being in this file directory.
 #
 # To rebuild the image with removal of the previous build:
-#   docker rmi developmentrunsk/dev-odoo:19.0-20251222 --force && docker build --pull --no-cache --build-arg IMAGE_VERSION=dev-odoo:19.0-20251222-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/dev-odoo:19.0-20251222 -f Dockerfile.dev-odoo_19.0-20251222 .
+#   docker rmi developmentrunsk/dev-odoo:18.0-20250123 --force && docker build --pull --no-cache --build-arg IMAGE_VERSION=dev-odoo:18.0-20250123-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/dev-odoo:18.0-20250123 -f Dockerfile.dev-odoo_18.0-20250123 .
 #
 # To redirect all build output to build.log file:
-#   docker rmi developmentrunsk/dev-odoo:19.0-20251222 --force && > build.log && docker build --pull --no-cache --build-arg IMAGE_VERSION=dev-odoo:19.0-20251222-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/dev-odoo:19.0-20251222 -f Dockerfile.dev-odoo_19.0-20251222 . > build.log 2>&1
+#   docker rmi developmentrunsk/dev-odoo:18.0-20250123 --force && > build.log && docker build --pull --no-cache --build-arg IMAGE_VERSION=dev-odoo:18.0-20250123-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/dev-odoo:18.0-20250123 -f Dockerfile.dev-odoo_18.0-20250123 . > build.log 2>&1
 #
 # To run the image in interactive mode:
-#   docker run -it developmentrunsk/dev-odoo:19.0-20251222 /bin/bash
+#   docker run -it developmentrunsk/dev-odoo:18.0-20250123 /bin/bash
 #
 # PUBLISH ON DOCKERHUB:
 # ---------------------
 # To push the image to https://hub.docker.com/r/developmentrunsk/dev-odoo:
 #   docker login
-#   docker push developmentrunsk/dev-odoo:19.0-20251222
+#   docker push developmentrunsk/dev-odoo:18.0-20250123
 #   docker logout
 #
 # IMAGES, CONTAINERS & VOLUMES INFO COMMANDS:
@@ -65,12 +65,12 @@
 #   docker builder prune
 #
 # NOTE: If there is some missing <command> in this docker image then try `busybox <command>`.
-FROM odoo:19.0-20251222
+FROM odoo:18.0-20250123
 
 USER root
 
 # Use to check the actual version of image inside of container
-ARG IMAGE_VERSION=dev-odoo:19.0-20251222-202606031315
+ARG IMAGE_VERSION=dev-odoo:18.0-20250123-202606031315
 ENV IMAGE_VERSION=${IMAGE_VERSION}
 
 # Let the scripts running in docker container using this image to know that
@@ -110,7 +110,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         sudo \
         # and you can add any other here below:
         # ... \
-    # Clean up the package manager's local repository of retrieved package files
+    # Clean up the package manager's local repository of retrieved package files
     # and remove the package lists that were downloaded earlier
     # to reduce the size of the final Docker image
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
@@ -151,10 +151,9 @@ RUN \
 # Add /home/developer/.local/bin to PATH
 ENV PATH="/home/developer/.local/bin:${PATH}"
 
-# Copy the entrypoint script and ensure Unix line endings
+# Copy the entrypoint script
 COPY dev-odoo-entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh \
-    && sed -i 's/\r$//' /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Create log directory for Odoo and set proper permissions
 RUN mkdir -p /var/log/odoo \
@@ -187,7 +186,7 @@ RUN \
     # NOTE: Since the Odoo is installed using system-wide python we must install system-wide
     # also debugpy and other python packages to make it work with system-wide python.
     # As we are in Docker container (where we control the entire environment), we can tell pip
-    # it's okay to modify the system environment by passing the --break-system-packages option
+    # it’s okay to modify the system environment by passing the --break-system-packages option
     # (and so bypass/ignore/break https://peps.python.org/pep-0668/)
     pip3 install --break-system-packages \
         # `debugpy` to allow odoo debugging in VS Code
@@ -197,7 +196,7 @@ RUN \
         # `uv`, an extremely fast Python package and project manager
         uv \
         # upgrade utils for migrations
-        # see https://www.odoo.com/documentation/19.0/developer/reference/upgrades/upgrade_utils.html
+        # see https://www.odoo.com/documentation/17.0/developer/reference/upgrades/upgrade_utils.html
         git+https://github.com/odoo/upgrade-util@master
         # and you can add any other here below:
         # ... \

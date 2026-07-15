@@ -1,6 +1,6 @@
 # BUILD & RUN COMMANDS:
 # ---------------------
-# ATTENTION: The build commands should be launched being in this project root directory.
+# ATTENTION: The build commands should be launched being in this file directory.
 #
 # To rebuild the image with removal of the previous build:
 #   docker rmi developmentrunsk/fajnpython:3.14 --force && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnpython:3.14-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/fajnpython:3.14 -f Dockerfile.fajnpython_3.14 .

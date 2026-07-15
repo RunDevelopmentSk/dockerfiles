@@ -1,6 +1,8 @@
 Dockerfiles for https://hub.docker.com/u/developmentrunsk
 
-The naming convention is as follows (`Dockerfile.<image_label>_<image_tag>`):
+All build sources (the `Dockerfile.*` files and the `.sh` scripts) live in the `images/` directory, keeping the repository root reserved for documentation and tooling configuration.
+
+The naming convention is as follows (`images/Dockerfile.<image_label>_<image_tag>`):
 - if `<image_label>` starts with `fajn` or `dev-`, it is a Dockerfile intended for project development in a devcontainer.
 - if `<image_label>` starts with `prod-`, it is for production project execution
 

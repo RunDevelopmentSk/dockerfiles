@@ -1,6 +1,6 @@
 # BUILD & RUN COMMANDS:
 # ---------------------
-# ATTENTION: The build commands should be launched being in this project root directory.
+# ATTENTION: The build commands should be launched being in this file directory.
 #
 # To rebuild the image with removal of the previous build:
 #   docker rmi developmentrunsk/fajnubuntu:noble-20251013 --force && docker build --pull --no-cache --build-arg IMAGE_VERSION=fajnubuntu:noble-20251013-$(date -u +%Y%m%d%H%M%S) -t developmentrunsk/fajnubuntu:noble-20251013 -f Dockerfile.fajnubuntu_noble-20251013 .

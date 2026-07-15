@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'Dockerfile.*'
-      - 'dev-odoo-entrypoint.sh'
+      - 'images/Dockerfile.*'
+      - 'images/dev-odoo-entrypoint.sh'
       - '.github/workflows/docker-publish.yml'
   workflow_dispatch:
     inputs:
@@ -40,11 +40,11 @@ jobs:
           fi
 
           if [[ "$FORCE_ALL" == "true" ]]; then
-            mapfile -t FILES < <(ls Dockerfile.* 2>/dev/null || true)
+            mapfile -t FILES < <(ls images/Dockerfile.* 2>/dev/null || true)
           elif [[ -n "$BASE" ]]; then
-            mapfile -t FILES < <(git diff --name-only --diff-filter=AM "$BASE" "$HEAD_SHA" -- 'Dockerfile.*')
+            mapfile -t FILES < <(git diff --name-only --diff-filter=AM "$BASE" "$HEAD_SHA" -- 'images/Dockerfile.*')
           else
-            mapfile -t FILES < <(ls Dockerfile.* 2>/dev/null || true)
+            mapfile -t FILES < <(ls images/Dockerfile.* 2>/dev/null || true)
           fi
 
           INCLUDE='[]'
@@ -87,7 +87,8 @@ jobs:
               echo "::notice file=$f::$f will be built for linux/amd64 only"
             fi
 
-            REST="${PARSE_FILE#Dockerfile.}"
+            BASE_NAME="${PARSE_FILE##*/}"
+            REST="${BASE_NAME#Dockerfile.}"
             if [[ "$REST" != *_* ]]; then
               echo "::error file=$f::Filename does not match Dockerfile.<image>_<tag>[.amd64] convention"
               exit 1
@@ -136,7 +137,7 @@ jobs:
       - name: Build and push ${{ matrix.image }}:${{ matrix.tag }}
         uses: docker/build-push-action@v7
         with:
-          context: .
+          context: images
           file: ${{ matrix.dockerfile }}
           platforms: ${{ matrix.platforms }}
           provenance: ${{ matrix.attest }}
