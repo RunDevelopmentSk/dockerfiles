@@ -21,7 +21,7 @@ Before working, check:
 - @.agents/rules/run.language-policy.md
 - @.agents/rules/run.secret-safety.md
 
-# General Project Description
+## General description
 
 The current project contains Dockerfile files of various Docker images that we use in other projects as:
 

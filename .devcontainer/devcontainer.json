@@ -39,8 +39,8 @@
         "editor.renderWhitespace": "all",
         "editor.renderControlCharacters": true,
         "editor.wordWrap": "on",
-        // Formatting and linting takes place EXCLUSIVELY via pre-commit (.pre-commit-config.yaml),
-        // so that the editor and pre-commit do not "clash" with each other. Therefore, the editor does not format on save
+        // Formatting and linting runs EXCLUSIVELY via pre-commit (.pre-commit-config.yaml),
+        // so that the editor and pre-commit do not conflict with each other. The editor therefore does not format on save
         // and does not perform any auto-fix actions.
         "editor.formatOnSave": false,
         "editor.codeActionsOnSave": {

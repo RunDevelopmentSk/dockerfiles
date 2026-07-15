@@ -7,59 +7,9 @@ The following coding AI agents are available in this devcontainer:
 - `agy` (**Antigravity** CLI)
 - **Codex** (VS Code extension) and/or `codex` (Codex CLI)
 
-You can download the current version for a given project from [github.com/RunDevelopmentSk/devcontainers](https://github.com/RunDevelopmentSk/devcontainers) > `_agents`.
+You can download the current version for a given project from [github.com/RunDevelopmentSk/devcontainers](https://github.com/RunDevelopmentSk/devcontainers) > `features/agents`.
 
 Details on how to use individual AI agents are described below.
-
-## Plans
-
-Every agent is used through a personal account (your individual login with the provider, see
-"Logging In" sestions below). Which **plan** pays for that usage is a separate choice:
-
-- **Individual plan** – an individually paid, capped tier tied to your personal account (private
-  use).
-- **Company plan** – a shared, company-paid tier your personal account is added to as a member
-  (work use); either metered API billing (pay per use) or a flat seat-based subscription (with
-  pay-as-you-go overflow once included credits are exhausted).
-
-The following notes summarize subscription options and their relative value, as of July 2026:
-
-- `agy`
-  - [Individual plan](accounts.google.com):
-    - 1 seat
-    - a small amount of free credits, with a weekly reset window
-    - an API requests limit
-  - [Company plan](https://console.cloud.google.com/) (metered API billing; personal account + project + billing + API enabled):
-    - unlimited seats for shared credits
-    - $300 of initial free credits included, then pay as you go
-    - the most cost-effective setup is often to keep each user on a separate, individually-owned Company plan to multiply the $300 free credits and also reduce the API requests.
-- `auggie`
-  - [Company plan](https://app.augmentcode.com/) (seat-based subscription; $100/month plan):
-    - 50 seats for shared credits
-    - when purchased credits are exhausted, pay as you go
-- `claude`
-  - [Individual plan](https://claude.ai/):
-    - 1 seat
-    - free credits based on subscription plan, with 5-hour and weekly reset window
-  - [Company plan](platform.claude.com) (metered API billing):
-    - unlimited seats for shared credits
-    - pay as you go
-- `codex`
-  - [Individual plan](https://chatgpt.com/) (Personal plan):
-    - 1 seat
-    - free credits based on subscription plan, with 5-hour and weekly reset window
-  - [Company plan](https://chatgpt.com/) (seat-based subscription; Business plan):
-    - unlimited seats for shared credits
-    - pay as you go
-
-Approximate value ranking, depending on the models in use (July 2026):
-
-- `agy` > individually-owned Company plan > until the initial $300 is used up
-- `codex` > Individual plan
-- `claude` > Individual plan
-- `auggie` > Company plan
-- `claude` > Company plan
-- `codex` > Company plan
 
 ## Unified Configuration (`.agents/` + `AGENTS.md`)
 
@@ -71,7 +21,7 @@ For all agents, **one source of truth** is used for project instructions, worksp
     - `agy`
     - `codex`
 - [`.agents/rules/`](../.agents/rules/) – modular workspace rules. Accepted by:
-    - `auggie` (symlink `.augment/rules`)
+    - `auggie` (via `.augment/rules`, see [temporary workaround](#temporary-workaround-materialized-rules) below)
     - `claude` (reference in `AGENTS.md`)
     - `agy`
     - `codex` (reference in `AGENTS.md`)
@@ -81,11 +31,10 @@ For all agents, **one source of truth** is used for project instructions, worksp
     - `agy`
     - `codex`
 - [`.agents/commands/`](../.agents/commands/) – custom slash commands shared across agents; each `<name>.md` file creates a `/name` command. Accepted by:
-    - `auggie` (symlink `.augment/commands`)
+    - `auggie`
     - `claude` (symlink `.claude/commands`)
-    - `agy` (symlink `.agents/workflows`)
 - [`.agents/agents/`](../.agents/agents/) – subagents shared across agents. Accepted by:
-    - `auggie` (symlink `.augment/agents`), `.md` format
+    - `auggie`,`.md` format
     - `claude` (symlink `.claude/agents`), `.md` format
     - `codex` (symlink `.codex/agents`), `toml` format
 - [`.agents/mcp_config.json`](../.agents/mcp_config.json) – shared JSON configuration of MCP servers. Accepted by:
@@ -99,13 +48,20 @@ ln -s AGENTS.md CLAUDE.md
 ln -s ../.agents/skills .claude/skills
 ln -s ../.agents/rules .augment/rules
 ln -s .agents/mcp_config.json .mcp.json
-ln -s ../.agents/commands .augment/commands
 ln -s ../.agents/commands .claude/commands
-ln -s commands .agents/workflows
 ln -s ../.agents/agents .claude/agents
-ln -s ../.agents/agents .augment/agents
 ln -s ../.agents/agents .codex/agents
 ```
+
+### Temporary workaround: materialized rules
+
+`auggie` (via `.augment/rules`) fails to read any files through a **symlinked directory** — it silently reports zero rules, with no error. A real (non-symlinked) directory in the same location is read correctly. This looks like the tool resolving directory entries by their raw, non-dereferenced type, under which a symlinked directory is reported as neither a file nor a directory and gets silently skipped.
+
+Until this is fixed upstream, [`.devcontainer/post-start-agents.sh`](../.devcontainer/post-start-agents.sh) (wired into `.devcontainer/post-start.sh`) replaces the symlink with a real directory containing a fresh copy of the source `.md` files (`.gitkeep` excluded) on every container start. `.augment/rules` is therefore a plain, gitignored directory in this repo, not a symlink — the `ln -s ../.agents/rules .augment/rules` command above only applies once the workaround is dropped.
+
+The `materialize_dir` call in `post-start-agents.sh` takes a `true`/`false` (`1`/`0`) flag, so it can be switched back to a plain symlink (`false`) — useful for re-testing whether the underlying bug is fixed.
+
+**After editing `.agents/rules/`, reopen the devcontainer** (so `postStartCommand` re-runs) to get the changes copied into `.augment/rules` — editing the materialized copy directly has no effect, it gets overwritten on the next container start.
 
 ### Naming convention
 
@@ -123,7 +79,7 @@ Workspace rules are in `.agents/rules/*.md` (Markdown with optional YAML frontma
 | Agent       | Discovery                                                                             |
 | ----------- | ------------------------------------------------------------------------------------- |
 | Antigravity | natively reads `.agents/rules/*.md`                                                   |
-| Auggie      | via symlink `.augment/rules → ../.agents/rules`                                       |
+| Auggie      | reads `.augment/rules`, materialized as a real directory ([temporary workaround](#temporary-workaround-materialized-rules)) |
 | Claude Code | has no rules folder; imports from `AGENTS.md` via `@.agents/rules/<file>.md` as needed|
 | Codex       | has no rules folder; references from `AGENTS.md` via `.agents/rules/<file>.md` as needed|
 
@@ -144,6 +100,17 @@ trigger: model_decision
 - …
 ```
 
+### Commands
+
+Custom slash commands are in `.agents/commands/*.md` (Markdown; each file creates a `/<name>` command). Discovery by agent:
+
+| Agent       | Discovery                                                                                             |
+| ----------- | ------------------------------------------------------------------------------------------------------ |
+| Auggie      | via the `.claude/commands` compatibility fallback (no dedicated `.augment/commands` symlink needed)   |
+| Claude Code | via symlink `.claude/commands → ../.agents/commands`                                                   |
+| Antigravity | **not supported** by the `agy` CLI; workflows, its closest equivalent, only work in the Antigravity IDE |
+| Codex       | **not supported**                                                                                       |
+
 ### Subagents
 
 Shared subagents are defined in `.agents/agents/`. Since Claude Code and Auggie use **Markdown** (`.md`) and Codex uses **TOML** (`.toml`), the directory contains both formats for each subagent (`<name>.md` + `<name>.toml`). Each agent selects files in the format it recognizes during discovery and ignores the others.
@@ -155,7 +122,7 @@ Shared subagents are defined in `.agents/agents/`. Since Claude Code and Auggie 
 
 **Antigravity** currently does not support file-defined subagents (only dynamic creation via `define_subagent` tool at runtime). If Google officially introduces this, we will add it.
 
-**Auggie** supports subagents via the same `.augment/agents/` directory (they can also be created via the `/agents` wizard in interactive mode).
+**Auggie** reads subagents directly from `.agents/agents/`. They can also be created via the `/agents` wizard in interactive mode.
 
 ### What remains agent-specific
 
@@ -193,6 +160,61 @@ The JSON schema for hooks is almost identical between Antigravity, Claude Code, 
 
 The sections below describe installation, logging in, as well as all configuration options for individual agents.
 
+## Plans
+
+Every agent is used through a personal account (your individual login with the provider, see
+"Logging In" sestions below). Which **plan** pays for that usage is a separate choice:
+
+- **Individual plan** – an individually paid, capped tier tied to your personal account (private
+  use).
+- **Company plan** – a shared, company-paid tier your personal account is added to as a member
+  (work use); either metered API billing (pay per use) or a flat seat-based subscription (with
+  pay-as-you-go overflow once included credits are exhausted).
+
+The following notes summarize subscription options and their relative value, as of July 2026:
+
+- `agy`
+  - [Individual plan](accounts.google.com):
+    - 1 seat
+    - a small amount of free credits, with a weekly reset window
+    - an API requests limit
+  - [Company plan](https://console.cloud.google.com/) (metered API billing; personal account + project + billing + API enabled):
+    - unlimited seats
+    - $300 of initial free credits included, then "pay as you go"
+    - the most cost-effective setup is often to keep each user on a separate, individually-owned Company plan to multiply the $300 free credits and also reduce the API requests.
+- `auggie`
+  - [Company plan](https://app.augmentcode.com/) (seat-based subscription; $100/month plan):
+    - up to 50 seats for purchased shared credits
+    - when purchased credits are exhausted then "pay as you go"
+- `claude`
+  - [Individual plan](https://claude.ai/):
+    - 1 seat
+    - free credits based on subscription plan, with 5-hour and weekly reset window
+  - [Company API plan](platform.claude.com) (metered API billing):
+    - unlimited seats
+    - "pay as you go"
+  - [Company subscription plan](https://claude.com/pricing#team-&-enterprise)
+    - from 5 to 150 seats
+    - when plan credits are exhausted then "pay as you go"
+      - free plan account has no free credits
+- `codex`
+  - [Individual plan](https://chatgpt.com/) (Personal plan):
+    - 1 seat
+    - free credits based on subscription plan, with 5-hour and weekly reset window
+      - even **free plan account has available free credits**
+  - [Company plan](https://chatgpt.com/) (seat-based subscription; Business plan):
+    - unlimited seats
+    - "pay as you go" ("Codex" seats) or "subscripion" falling back to "pay as you go" ("ChatGPT" seats)
+
+Approximate value ranking, depending on the models in use (July 2026):
+
+- `agy` > individually-owned Company plan > until the initial $300 is used up
+- `codex` > "Individual plan" or "Company plan" + "ChatGPT" seats
+- `claude` > Individual plan
+- `auggie` > Company plan
+- `claude` > Company plan
+- `codex` > Company plan
+
 ## Auggie
 
 ### Installation
@@ -216,6 +238,7 @@ Commands ("slash commands") for standard work with the `auggie` CLI are:
 - **allow full permissions:**
     - `auggie` has full permissions in the default configuration
     - controlled version: `/permissions` > `A` > `Locals settings (personal)` > ...
+- **new line in prompt:** `Alt Enter`
 - **select conversation:** `/sessions`, here conversations can also be deleted
 - **new conversation:** `/new`
 - **rename conversation:** `/rename <name>`
@@ -240,13 +263,15 @@ Keyboard shortcuts:
 - delete from cursor to end of line: `Ctrl Shift K`
 - delete previous word: `Ctrl W`
 
+See also [official docs](https://docs.augmentcode.com/cli/interactive).
+
 ### Configuration
 
 Auggie can be configured as follows:
 
 | File / folder                     | Purpose                                          | Note                                                                                                                                                                                                               |
 | --------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `.augment/rules/*.md`             | Project rules                                    | Rules in `.augment/rules` are Markdown files; supported types are **always_apply** and **agent_requested**. Workspace rules are intended to be committed to the repository. ([docs.augmentcode.com][augment-1])   |
+| `.augment/rules/*.md`             | Project rules                                    | Rules in `.augment/rules` are Markdown files; supported types are **always_apply** and **agent_requested**. Workspace rules are intended to be committed to the repository. In this project, `.augment/rules` is materialized as a real directory rather than symlinked, see the [temporary workaround](#temporary-workaround-materialized-rules). ([docs.augmentcode.com][augment-1])   |
 | `AGENTS.md`                       | Hierarchical rules                               | Can be in root and subdirectories; Auggie searches for it in the current and parent directories when working with a file. ([docs.augmentcode.com][augment-2], [agents.md](https://agents.md/))                   |
 | `CLAUDE.md`                       | Hierarchical rules compatible with Claude Code   | Works similarly to `AGENTS.md`; only `AGENTS.md` and `CLAUDE.md` appear hierarchically, not `.augment/rules` in subdirectories. ([docs.augmentcode.com][augment-2])                                                |
 | `.augment/skills/<name>/SKILL.md` | Skills                                           | Each skill is its own directory with `SKILL.md`; must have YAML frontmatter `name` and `description`. ([docs.augmentcode.com][augment-3])                                                                           |
@@ -326,6 +351,7 @@ Commands ("slash commands") for standard work with the `claude` CLI are:
     - fast version: `claude --dangerously-skip-permissions`
     - slower version: `/config` > `Default permission mode` > `Auto`, or toggle on the fly using `Shift Tab`
     - controlled version: `/permissions` > `Allow`|`Ask`|`Deny`|... > `Bash`, `Bash(npm *)`, `Edit`, `Edit(src/**)`, `Write`, `Read`, `WebFetch`, `WebSearch`, `NotebookEdit`, `Skill`, `Workflow`, `Monitor`, ...
+- **new line in prompt:** `Alt Enter`
 - **select conversation:** `/resume`
 - **new conversation:** `/clear`
 - **rename conversation:** `/rename`
@@ -342,6 +368,8 @@ Commands ("slash commands") for standard work with the `claude` CLI are:
 - **exit work:** `/exit`
 
 See also other added commands in `.agents/commands` and skills in `.agents/skills`.
+
+For keyboard shortcuts [see](https://code.claude.com/docs/en/interactive-mode).
 
 ### Configuration
 
@@ -435,6 +463,7 @@ Commands ("slash commands") for standard work with the `agy` CLI are:
     - fast version: `agy --dangerously-skip-permissions`
     - slower version: `/config` > `Tools Permission` > `always-proceed`
     - controlled version: `/permissions` > `Project` > `allowlist` > `command(*)`, `read_file(*)`, `write_file(*)`, `read_url(*)`, `mcp(*)`
+- **new line in prompt:** `Alt Enter`
 - **select conversation:** `/resume`
 - **new conversation:** `/clear`
 - **rename conversation:** `/rename`
@@ -448,7 +477,9 @@ Commands ("slash commands") for standard work with the `agy` CLI are:
 - **show usage/credits:** `/usage` – current session's token usage and remaining credits
 - **exit work:** `/exit`
 
-See also other added commands in `.agents/commands` and skills in `.agents/skills`.
+See also other added skills in `.agents/skills`. The added commands in `.agents/commands` are not supported in the `agy` CLI (Antigravity workflows, the closest equivalent, only work in the Antigravity IDE, not the CLI).
+
+See also [officia docs](https://antigravity.google/docs/cli/using)
 
 ### Configuration
 
@@ -461,7 +492,6 @@ Antigravity can be configured as follows:
 | `.agents/agents.md`               | Definition of the team/personas, e.g., PM, engineer, QA, DevOps.                          | Google codelab uses `.agents/agents.md` to centrally define specialized agent personas. ([Google Codelabs][agy-2])                                                                                                                  |
 | `.agents/rules/*.md`              | Workspace rules: project rules for code style, architecture, testing, and security.       | Workspace rules live in `.agents/rules/`; global rules are in `~/.gemini/GEMINI.md`. ([Google Antigravity][agy-3])                                                                                                                  |
 | `.agents/skills/<skill>/SKILL.md` | Project skills: repeatable abilities/workflows packaged as a directory with `SKILL.md`.   | Antigravity currently defaults to `.agents/skills`; a skill is a folder containing `SKILL.md`. ([Google Antigravity][agy-4], [medium][agy-5])                                                                                       |
-| `.agents/workflows/*.md`          | Workspace workflows / custom slash commands.                                              | Workflows are saved Markdown files and are run via `/workflow-name`; workspace workflows live in `.agents/workflows/`. ([Google Antigravity][agy-3])                                                                                |
 | `.agents/hooks.json`              | Hooks: local shell scripts run at specified points in the agent execution cycle.          | Hooks are configured in `hooks.json` in the customization directory, e.g., `.agents/` in the workspace. ([Google Antigravity][agy-6])                                                                                               |
 | `.agents/mcp_config.json`         | Project MCP configuration, mainly for Antigravity CLI / workspace setup.                  | Antigravity uses a separate `mcp_config.json`; IDE documentation mentions global `~/.gemini/antigravity/mcp_config.json`, while CLI/workspace guides also mention project MCP under `.agents/`. ([Google Antigravity][agy-7])       |
 
@@ -495,11 +525,6 @@ repo/
         resources/
         examples/
 
-    workflows/
-      review.md
-      fix-issue.md
-      startcycle.md
-
     hooks.json
     mcp_config.json          # mainly Antigravity CLI / project MCP; IDE MCP is often global
 ```
@@ -529,6 +554,7 @@ Commands ("slash commands") for standard work with the `codex` CLI are:
 - **allow full permissions:**
     - fast version: `codex --dangerously-bypass-approvals-and-sandbox`
     - slower version: `/permissions` > `Full Access`
+- **new line in prompt:** `Alt Enter`
 - **select conversation:** `/resume`
 - **new conversation:** `/new`, `/clear`
 - **rename conversation:** `/rename`
@@ -542,9 +568,12 @@ Commands ("slash commands") for standard work with the `codex` CLI are:
 - **show usage/credits:**
     - `/status` – current 5h and week window token usage
     - `/statusline` – customization of a persistent status line showing live usage in the terminal
+- **update:** `codex update`
 - **exit work:** `/exit`
 
 See also other added skills in `.agents/skills`. The added commands in `.agents/commands` are not supported in the `codex` CLI.
+
+See also [official docs](https://learn.chatgpt.com/docs/developer-commands?surface=cli).
 
 ### Configuration
 
