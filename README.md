@@ -1,4 +1,4 @@
-Dockerfiles for https://hub.docker.com/u/developmentrunsk
+Dockerfiles for https://hub.docker.com/u/developmentrunsk and mostly used by https://github.com/RunDevelopmentSk/devcontainers.
 
 All build sources (the `Dockerfile.*` files and the `.sh` scripts) live in the `images/` directory, keeping the repository root reserved for documentation and tooling configuration.
 
