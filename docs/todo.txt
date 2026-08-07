@@ -5,6 +5,18 @@
 - add devcontainer (fajnubuntu_noble-20251013)
 - transfer pre-commit from drinkcentrum-is
 - in order to run pipx in odoo 17 (python 3.10), it is (apparently) necessary to install `apt install python3.10-venv` - check this
+- Codex SDK vracia nasledovnú chybu (od Artema):
+    ```
+    > Read docs/README.md
+    Сначала сверюсь с рабочими правилами навыков, затем прочитаю указанный документ.
+    $ /bin/bash -lc "sed -n '1,240p' /home/ubuntu/.codex/skills/using-superpowers/SKILL.md && sed -n '1,240p' docs/README.md"
+    [error] command exited 1: /bin/bash -lc "sed -n '1,240p' /home/ubuntu/.codex/skills/using-superpowers/SKILL.md && sed -n '1,240p' docs/README.md"
+    $ /bin/bash -lc "sed -n '1,240p' /home/ubuntu/.codex/skills/using-superpowers/SKILL.md && sed -n '1,240p' docs/README.md"
+    [approval required] run: /bin/bash -lc "sed -n '1,240p' /home/ubuntu/.codex/skills/using-superpowers/SKILL.md && sed -n '1,240p' docs/README.md"
+    [approval granted] c4438fe1-3271-4baa-a4b1-d89176913b8b
+    [error] command exited 2: /bin/bash -lc "sed -n '1,240p' /home/ubuntu/.codex/skills/using-superpowers/SKILL.md && sed -n '1,240p' docs/README.md"
+    ```
+Malo by to súvisieť s bubblewrap ktorý už v docker images je nainštalovaný. Súvisí to (zrejme) s tým že Codex CLI si vie vypýtať povolenie na prístup no Codex SDK nie
 
 ---
 How to write todo:
