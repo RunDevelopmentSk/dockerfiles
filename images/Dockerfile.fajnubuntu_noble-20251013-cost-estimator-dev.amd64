@@ -176,7 +176,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 #
 # The closing `command -v` makes a broken install fail the build here instead of
 # at the first conversion.
-ARG ODA_URL=http://shared.run.sk/files/ODAFileConverter_QT6_lnxX64_8.3dll_27.1.deb
+ARG ODA_URL=https://www.opendesign.com/guestfiles/get?filename=ODAFileConverter_QT6_lnxX64_8.3dll_27.1.deb
 RUN set -eux; \
     test "$(dpkg --print-architecture)" = "amd64"; \
     package=/tmp/ODAFileConverter.deb; \

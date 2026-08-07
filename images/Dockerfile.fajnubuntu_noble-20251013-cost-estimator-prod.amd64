@@ -195,7 +195,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 # libraries are actually there. The loader stops at the first library it cannot
 # find, so a runtime failure names one at a time - `ldd` names them all at once,
 # which is the difference between one rebuild and five.
-ARG ODA_URL=http://shared.run.sk/files/ODAFileConverter_QT6_lnxX64_8.3dll_27.1.deb
+ARG ODA_URL=https://www.opendesign.com/guestfiles/get?filename=ODAFileConverter_QT6_lnxX64_8.3dll_27.1.deb
 RUN set -eux; \
     test "$(dpkg --print-architecture)" = "amd64"; \
     package=/tmp/ODAFileConverter.deb; \
