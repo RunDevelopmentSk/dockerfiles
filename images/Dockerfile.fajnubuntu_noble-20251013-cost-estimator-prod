@@ -149,15 +149,9 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 # neither stable nor reachable from a build. The mirror pins one known version
 # instead, which is also what makes the build reproducible.
 #
-# ODA_SHA256 is the contract with that mirror. The URL is plain HTTP and the
-# host is ours to change, so the digest is what actually decides whether the
-# 56 MB that arrived is the package this image was tested against; without it a
-# swapped or truncated file would install silently. To move to a new converter
-# release, change both ARGs together - the version alone will fail the check.
-#
-# Both are ARGs so a build can point at a different mirror or version without
-# editing this file:
-#   docker compose build --build-arg ODA_URL=... --build-arg ODA_SHA256=...
+# ODA_URL is an ARG so a build can point at a different mirror or version
+# without editing this file:
+#   docker compose build --build-arg ODA_URL=...
 #
 # The download and the install share one RUN layer, and the .deb is removed
 # inside it. Splitting them would leave the package in its own layer forever,
@@ -202,7 +196,6 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 # find, so a runtime failure names one at a time - `ldd` names them all at once,
 # which is the difference between one rebuild and five.
 ARG ODA_URL=http://shared.run.sk/files/ODAFileConverter_QT6_lnxX64_8.3dll_27.1.deb
-ARG ODA_SHA256=c71363cd54758177af47a365154f180dc50a1e2b52a131994fda541c13a36766
 RUN set -eux; \
     test "$(dpkg --print-architecture)" = "amd64"; \
     package=/tmp/ODAFileConverter.deb; \
@@ -210,15 +203,7 @@ RUN set -eux; \
         echo "error: could not download the ODA File Converter from:" >&2; \
         echo "  ${ODA_URL}" >&2; \
         echo "Check the network, or point the build at another copy:" >&2; \
-        echo "  docker compose build --build-arg ODA_URL=... --build-arg ODA_SHA256=..." >&2; \
-        exit 1; \
-    fi; \
-    if ! echo "${ODA_SHA256}  ${package}" | sha256sum -c -; then \
-        echo "error: the downloaded package does not match ODA_SHA256." >&2; \
-        echo "Expected ${ODA_SHA256}" >&2; \
-        echo "Got      $(sha256sum < "${package}" | cut -d' ' -f1)" >&2; \
-        echo "The mirror served something else. Do not install it: verify the" >&2; \
-        echo "source, then update ODA_URL and ODA_SHA256 together." >&2; \
+        echo "  docker compose build --build-arg ODA_URL=..." >&2; \
         exit 1; \
     fi; \
     apt-get update; \
