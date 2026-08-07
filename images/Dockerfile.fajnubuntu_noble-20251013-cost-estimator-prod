@@ -290,25 +290,56 @@ ENV XDG_RUNTIME_DIR=/home/ubuntu/.runtime
 # `--break-system-packages` is required because the interpreter is apt-managed
 # (PEP 668). It is safe here and not a hack we regret: this container is
 # disposable and rebuilt often, so a conflict with an apt `python3-*` upgrade is
-# resolved by rebuilding instead of by hand. The bind mounts keep the files
-# themselves out of the image layers.
+# resolved by rebuilding instead of by hand.
+#
+# The package lists are written inline rather than read from a requirements file,
+# so this Dockerfile builds on its own with no build context to prepare. Each
+# list is a heredoc: pins stay one-per-line and reviewable, and the file never
+# enters an image layer.
 
-# Dependencies that no pyproject.toml owns (task 0052). Read from THIS directory,
-# not from `.devcontainer`: the two images are no longer the same one with a
-# different mount, and a build that reaches into the development directory is not
-# a self-contained build (task 0072).
-RUN --mount=type=bind,source=.prodcontainer/requirements.txt,target=/tmp/requirements.txt \
-    python3 -m pip install --no-cache-dir --break-system-packages \
-        -r /tmp/requirements.txt
+# Dependencies that no pyproject.toml owns (task 0052).
+#
+# What the `agent` package itself declares does NOT belong here. Its runtime
+# closure is pinned in the next layer, and the package is bound into the
+# interpreter by `agent/scripts/container-setup.sh` on every container start.
+#
+# Everything below lives here only until a domain package with its own
+# pyproject.toml exists; task 0056 decides where that package goes. Versions are
+# pinned because these modules are read as contracts, not as documentation.
+RUN python3 -m pip install --no-cache-dir --break-system-packages -r /dev/stdin <<'EOF'
+# `ezdxf.addons.odafc` is the working interface to ODA File Converter - notably
+# it runs the converter without a timeout, which the caller has to supply
+# (task 0051).
+ezdxf==1.4.4
+
+# Cost-estimation input formats (task 0061). The `.doc` reader is not here: it is
+# the apt package `wv`, installed above.
+
+# Reads both `.xlsx` and `.xls` through one interface, which is why it replaced
+# the `xlrd` + external-converter pair. Verified on the real files under `data/`:
+# a 16-sheet `.xls` opens directly, and a CENKROS export is read out to column 91
+# - the range where prices hide well past `I:J`.
+python-calamine==0.8.2
+
+# Writes the auditable XLSX report. Read-only work goes through calamine above;
+# `openpyxl` cannot read `.xls` at all.
+openpyxl==3.1.5
+
+# Text, tables and word coordinates from PDF - the technical reports and drawing
+# legends that carry meaning no drawing holds. Verified on `data/`: a floor plan
+# yields its `LEGENDA ZNAČIEK` and 8 tables.
+pdfplumber==0.11.10
+EOF
 
 # The runtime closure of `openai-codex`, pinned - and nothing else. This image
 # carries no pytest, ruff or mypy: it runs the pipeline, it does not develop it
 # (developer's decision 2026-08-04). Consequence worth knowing: `agent/tests` is
 # visible through the mount but cannot be run here. Use the development container.
 #
-# `agent/requirements.lock` is that closure and was written for exactly this
-# purpose, while being applied by nobody - the defect task 0053 names. Using it
-# here closes it.
+# The closure is pinned inline below. Regenerate it after changing the
+# `openai-codex` version, and paste the result back into this heredoc:
+#
+#   pip install --dry-run --ignore-installed --report r.json 'openai-codex==0.144.4'
 #
 # `agent` itself is NOT installed at build time: an editable install records a
 # path under /mnt, which does not exist until the container runs. `hatchling` and
@@ -323,12 +354,20 @@ RUN --mount=type=bind,source=.prodcontainer/requirements.txt,target=/tmp/require
 # in /usr/local/lib/python3.12/dist-packages, which sys.path reaches BEFORE
 # /usr/lib/python3/dist-packages, so it wins. `pipx` is the only dpkg dependent and
 # asks for >=20, so it keeps working.
-RUN --mount=type=bind,source=agent/requirements.lock,target=/tmp/runtime.lock \
-    set -eux; \
+RUN set -eux; \
     python3 -m pip install --no-cache-dir --break-system-packages \
         --ignore-installed "packaging==26.2"; \
     python3 -m pip install --no-cache-dir --break-system-packages \
-        -r /tmp/runtime.lock "hatchling==1.31.0" "editables==0.6"
+        "hatchling==1.31.0" "editables==0.6" -r /dev/stdin <<'EOF'
+# Locked runtime dependency closure for openai-codex==0.144.4.
+annotated-types==0.7.0
+openai-codex-cli-bin==0.144.4
+openai-codex==0.144.4
+pydantic==2.13.4
+pydantic_core==2.46.4
+typing-inspection==0.4.2
+typing_extensions==4.16.0
+EOF
 
 # File logging is ON in this image, and the marker is how (task 0066). It keys off
 # this file and nothing else: an environment variable like IN_DOCKER can be set by

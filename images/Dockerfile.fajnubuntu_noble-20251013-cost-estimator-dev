@@ -245,13 +245,46 @@ ENV QT_QPA_PLATFORM=xcb
 # `--break-system-packages` is required because the interpreter is apt-managed
 # (PEP 668). It is safe here and not a hack we regret: this container is
 # disposable and rebuilt often, so a conflict with an apt `python3-*` upgrade is
-# resolved by rebuilding instead of by hand. The bind mounts keep the files
-# themselves out of the image layers.
+# resolved by rebuilding instead of by hand.
+#
+# The package lists are written inline rather than read from a requirements file,
+# so this Dockerfile builds on its own with no build context to prepare. Each
+# list is a heredoc: pins stay one-per-line and reviewable, and the file never
+# enters an image layer.
 
 # Dependencies that no pyproject.toml owns (task 0052).
-RUN --mount=type=bind,source=.devcontainer/requirements.txt,target=/tmp/requirements.txt \
-    python3 -m pip install --no-cache-dir --break-system-packages \
-        -r /tmp/requirements.txt
+#
+# Everything the `agent` package needs - openai-codex and the dev tools - is
+# declared in agent/pyproject.toml and arrives with the editable install that
+# post-create.sh performs. Do not repeat it here.
+#
+# Everything below lives here only until a domain package with its own
+# pyproject.toml exists; task 0056 decides where that package goes. Versions are
+# pinned because these modules are read as contracts, not as documentation.
+RUN python3 -m pip install --no-cache-dir --break-system-packages -r /dev/stdin <<'EOF'
+# `ezdxf.addons.odafc` is the working interface to ODA File Converter - notably
+# it runs the converter without a timeout, which the caller has to supply
+# (task 0051).
+ezdxf==1.4.4
+
+# Cost-estimation input formats (task 0061). The `.doc` reader is not here: it is
+# the apt package `wv`, installed above.
+
+# Reads both `.xlsx` and `.xls` through one interface, which is why it replaced
+# the `xlrd` + external-converter pair. Verified on the real files under `data/`:
+# a 16-sheet `.xls` opens directly, and a CENKROS export is read out to column 91
+# - the range where prices hide well past `I:J`.
+python-calamine==0.8.2
+
+# Writes the auditable XLSX report. Read-only work goes through calamine above;
+# `openpyxl` cannot read `.xls` at all.
+openpyxl==3.1.5
+
+# Text, tables and word coordinates from PDF - the technical reports and drawing
+# legends that carry meaning no drawing holds. Verified on `data/`: a floor plan
+# yields its `LEGENDA ZNAČIEK` and 8 tables.
+pdfplumber==0.11.10
+EOF
 
 # Pinned closure of `agent[dev]` and the build backend (task 0054). `agent` itself
 # is NOT installed here - an editable install records a path under /mnt, which is
@@ -264,13 +297,50 @@ RUN --mount=type=bind,source=.devcontainer/requirements.txt,target=/tmp/requirem
 # the lock aborts. `--ignore-installed` leaves dpkg's copy alone and puts the newer
 # one in /usr/local/lib/python3.12/dist-packages, which sys.path reaches BEFORE
 # /usr/lib/python3/dist-packages, so it wins. `pipx` is the only dpkg dependent and
-# asks for >=20, so it keeps working.
-RUN --mount=type=bind,source=.devcontainer/requirements-dev.lock,target=/tmp/dev.lock \
-    set -eux; \
+# asks for >=20, so it keeps working. Its pin is repeated in the list below - keep
+# the two in step when regenerating.
+#
+# The closure is DERIVED: agent/pyproject.toml stays the source of direct
+# dependencies, and this list only freezes what they resolve to. Regenerate after
+# changing them, and paste the result back into this heredoc:
+#
+#   python3 -m pip install --dry-run --ignore-installed --quiet \
+#       --report /tmp/devlock.json "./agent[dev]" hatchling editables
+#   python3 -c "import json; r=json.load(open('/tmp/devlock.json')); \
+#       print('\n'.join(sorted(f\"{i['metadata']['name']}=={i['metadata']['version']}\" \
+#       for i in r['install'] if i['metadata']['name'].lower() != 'agent')))"
+#
+# Drift against agent/pyproject.toml is caught automatically: after the editable
+# install, `pip check` reports any requirement the closure fails to satisfy.
+RUN set -eux; \
     python3 -m pip install --no-cache-dir --break-system-packages \
-        --ignore-installed "$(grep -E '^packaging==' /tmp/dev.lock)"; \
-    python3 -m pip install --no-cache-dir --break-system-packages \
-        -r /tmp/dev.lock
+        --ignore-installed "packaging==26.2"; \
+    python3 -m pip install --no-cache-dir --break-system-packages -r /dev/stdin <<'EOF'
+# Pinned closure of `agent[dev]` plus the build backend (task 0054).
+# `agent` itself is deliberately absent: post-create.sh installs it editable
+# from /mnt/agent, which cannot happen at build time.
+annotated-types==0.8.0
+ast_serialize==0.6.0
+editables==0.6
+hatchling==1.31.0
+iniconfig==2.3.0
+librt==0.13.0
+mypy==2.3.0
+mypy_extensions==1.1.0
+openai-codex==0.144.4
+openai-codex-cli-bin==0.144.4
+packaging==26.2
+pathspec==1.1.1
+pluggy==1.6.0
+pydantic==2.13.4
+pydantic_core==2.46.4
+pygments==2.20.0
+pytest==9.1.1
+ruff==0.16.0
+trove-classifiers==2026.6.1.19
+typing-inspection==0.4.2
+typing_extensions==4.16.0
+EOF
 
 # Marker that this image is for development (task 0066). File logging keys off
 # this file and nothing else: an environment variable like IN_DOCKER can be set
