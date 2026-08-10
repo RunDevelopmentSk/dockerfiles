@@ -133,6 +133,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         python3-pip \
         # `python3-venv` is required by `pipx` to create isolated environments
         python3-venv \
+        # `jq` is like `grep`/`awk` but for JSON
+        jq \
     # Install wkhtmltopdf with patched Qt (architecture detected via `dpkg --print-architecture`)
     && apt-get install -y xfonts-base xfonts-75dpi \
     && ARCH="$(dpkg --print-architecture)" \

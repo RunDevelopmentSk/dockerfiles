@@ -135,6 +135,8 @@ RUN apt-get update -o Acquire::Check-Valid-Until=false && export DEBIAN_FRONTEND
         python3-pip \
         # `python3-venv` is required by `pipx` to create isolated environments
         python3-venv \
+        # `jq` is like `grep`/`awk` but for JSON
+        jq \
     # Clean up the package manager's local repository of retrieved package files
     # and remove the package lists that were downloaded earlier
     # to reduce the size of the final Docker image

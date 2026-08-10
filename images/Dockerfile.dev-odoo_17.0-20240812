@@ -108,6 +108,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
         libatomic1 \
         # `sudo` command
         sudo \
+        # `jq` is like `grep`/`awk` but for JSON
+        jq \
         # and you can add any other here below:
         # ... \
     # Clean up the package manager's local repository of retrieved package files

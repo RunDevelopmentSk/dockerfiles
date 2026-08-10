@@ -84,6 +84,8 @@ RUN rm -f /etc/apt/sources.list.d/yarn.list \
         curl \
         # `sudo` command
         sudo \
+        # `jq` is like `grep`/`awk` but for JSON
+        jq \
         # and you can add any other here below:
         # ... \
     # Clean up the package manager's local repository of retrieved package files
